@@ -69,7 +69,7 @@ class NESCAFIND {
 	NESCAFINDLINE			lineget(const std::string &txt);
 	std::vector<NESCAFINDLINE>	fileget(void); /* - */
 	NESCAFINDRESULT			fileprobe(NESCATARGET *target, const std::string &node,
-						 int find);
+						 int find, int service=-1, int port=-1);
 	void				init(NESCAOPTS *opts);
 public:
 	NESCAFIND(NESCADATA *ncsdata);

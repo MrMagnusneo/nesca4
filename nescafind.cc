@@ -119,13 +119,14 @@ NESCAFIND::NESCAFIND(NESCADATA *ncsdata)
 						continue;
 					/* HTTP */
 					if (tmp.service==S_HTTP) {
+						int hp=t->get_port(i).port;
 						for (const auto&s:tmp.info) {
 							if (s.type=="html")
-								fileprobe(t, s.info, FIND_HTTP_HTML);
+								fileprobe(t, s.info, FIND_HTTP_HTML, S_HTTP, hp);
 							if (s.type=="redirect")
-								fileprobe(t, s.info, FIND_HTTP_REDIRECT);
+								fileprobe(t, s.info, FIND_HTTP_REDIRECT, S_HTTP, hp);
 							if (s.type=="title")
-								fileprobe(t, s.info, FIND_HTTP_TITLE);
+								fileprobe(t, s.info, FIND_HTTP_TITLE, S_HTTP, hp);
 						}
 					}
 					/* FTP */
@@ -231,7 +232,7 @@ std::string strtypefind(int find)
 	}
 }
 
-NESCAFINDRESULT NESCAFIND::fileprobe(NESCATARGET *target, const std::string &node, int find)
+NESCAFINDRESULT NESCAFIND::fileprobe(NESCATARGET *target, const std::string &node, int find, int service, int port)
 {
 	std::string		resbuf, tmp;
 	std::ostringstream	buf;
@@ -268,11 +269,8 @@ NESCAFINDRESULT NESCAFIND::fileprobe(NESCATARGET *target, const std::string &nod
 				res.ok=1;
 				target->add_dbres(res.info,
 				strtypefind(find));
-				/*
-				if (res.bruteforce) {
-					target->set_bruteforce(, int port, const std::string &other)
-				}
-				*/
+				if (res.bruteforce&&service>=0&&port>=0)
+					target->set_bruteforce(service, port, "");
 				return res;
 			}
 			continue;
