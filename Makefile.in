@@ -3,14 +3,15 @@ CC        = @CXX@
 CFLAGS    = @CFLAGS@ @OCFLAGS@
 SRCS      = nesca4.cc nescaprint.cc nescadata.cc \
 						nescaengine.cc nescaservices.cc nescafind.cc \
-						nescabrute.cc nescartsp.cc
+						nescabrute.cc nescartsp.cc nescassh.cc
 OBJS      = $(SRCS:.cc=.o)
 LIBNCSNET = libncsnet/libncsnet.a
+LIBS_EXTRA = @LIBS_EXTRA@
 
 all: $(TARGET)
 
 $(TARGET): $(OBJS) $(LIBNCSNET)
-	$(CXX) $^ -o $@ $(CFLAGS)
+	$(CXX) $^ -o $@ $(CFLAGS) $(LIBS_EXTRA)
 
 %.o: %.cc
 	$(CXX) -c $< -o $@ $(CFLAGS)

@@ -1647,6 +1647,10 @@ void NESCAOPTS::set_s_param(const std::string &s_param)
 				service=S_RTSP;
 				rem=(std::string("rtsp").length());
 			}
+			if (!find_word(token.c_str(), "ssh")) {
+				service=S_SSH;
+				rem=(std::string("ssh").length());
+			}
 			rem++;
 			token.erase(0,rem);
 		}

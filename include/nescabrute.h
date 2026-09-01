@@ -32,6 +32,7 @@
 #include "nescadata.h"
 #include "nescaengine.h"
 #include "nescartsp.h"
+#include "nescassh.h"
 
 #include "../libncsnet/ncsnet/mt19937.h"
 #include "../libncsnet/ncsnet/socket.h"
@@ -43,6 +44,7 @@
 #define HTTP_BRUTEFORCE		S_HTTP
 #define FTP_BRUTEFORCE		S_FTP
 #define RTSP_BRUTEFORCE		S_RTSP
+#define SSH_BRUTEFORCE		S_SSH
 /*
 #define SMTP_BRUTEFORCE      2
 #define RVI_BRUTEFORCE       3

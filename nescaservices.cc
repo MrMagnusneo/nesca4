@@ -165,6 +165,12 @@ void NESCAPROCESSING::INIT(NESCADATA *ncsdata, int service)
 			this->methods.push_back(rtsp);
 			return;
 		}
+		case S_SSH: {
+			NESCAPROCESSINGCORPUS ssh;
+			ssh.setcheck(ssh_chk_0);
+			this->methods.push_back(ssh);
+			return;
+		}
 	}
 }
 
@@ -446,6 +452,38 @@ bool rtsp_chk_0(NESCATARGET *target, int port,
 
 	target->add_service(target->get_real_port(pos), S_RTSP, s, e);
 	target->set_bruteforce(S_RTSP, port, "");
+	return 1;
+}
+
+bool ssh_chk_0(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata)
+{
+	struct timeval	s, e;
+	u8		receive[BUFSIZ];
+	size_t		pos;
+	std::string	banner;
+	int		ret;
+
+	___VERBOSE;
+	gettimeofday(&s, NULL);
+	ret=sock_session(target->get_mainip().c_str(), port,
+		timeout, receive, sizeof(receive));
+	gettimeofday(&e, NULL);
+	if (ret<0)
+		return 0;
+	banner=std::string((char*)receive);
+	if (find_word(banner.c_str(), "SSH-")!=0)
+		return 0;
+	banner=clearbuf(banner);
+
+	for (pos=0;pos<target->get_num_port();pos++)
+		if (target->get_port(pos).port==port)
+			break;
+
+	target->add_service(target->get_real_port(pos), S_SSH, s, e);
+	target->add_info_service(target->get_real_port(pos), S_SSH,
+		banner, "header");
+	target->set_bruteforce(S_SSH, port, "");
 	return 1;
 }
 #undef ___VERBOSE

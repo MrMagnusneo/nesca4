@@ -131,6 +131,10 @@ void NESCABRUTE::probe(int fd, u8 service, const std::string &ip,
 			*auth=rtsp_qprc_auth(fd, ip, srvport, login, pass,
 				restimeout);
 			return;
+		case SSH_BRUTEFORCE:
+			*auth=ssh_brute_auth(fd, ip, srvport, login, pass,
+				restimeout);
+			return;
 	}
 }
 

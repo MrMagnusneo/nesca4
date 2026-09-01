@@ -33,6 +33,18 @@ else
   echo "library (libncsnet.a) found, no need to configure and make ncsnet"
 fi
 
+dnl check libssh (optional, enables SSH bruteforce)
+
+LIBS_EXTRA=""
+AC_CHECK_HEADER([libssh/libssh.h],
+  [AC_CHECK_LIB([ssh], [ssh_new],
+    [AC_DEFINE([HAVE_LIBSSH], [1], [libssh is available, SSH bruteforce enabled])
+     LIBS_EXTRA="$LIBS_EXTRA -lssh"
+     echo "libssh found, SSH bruteforce enabled"],
+    [echo "libssh library not found, SSH bruteforce disabled"])],
+  [echo "libssh headers not found, SSH bruteforce disabled"])
+AC_SUBST(LIBS_EXTRA)
+
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
 
