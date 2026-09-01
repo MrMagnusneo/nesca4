@@ -1643,6 +1643,26 @@ void NESCAOPTS::set_s_param(const std::string &s_param)
 				service=S_FTP;
 				rem=(std::string("ftp").length());
 			}
+			if (!find_word(token.c_str(), "rtsp")) {
+				service=S_RTSP;
+				rem=(std::string("rtsp").length());
+			}
+			if (!find_word(token.c_str(), "ssh")) {
+				service=S_SSH;
+				rem=(std::string("ssh").length());
+			}
+			if (!find_word(token.c_str(), "rvi")) {
+				service=S_RVI;
+				rem=(std::string("rvi").length());
+			}
+			if (!find_word(token.c_str(), "ipc")) {
+				service=S_IPC;
+				rem=(std::string("ipc").length());
+			}
+			if (!find_word(token.c_str(), "wf")) {
+				service=S_WF;
+				rem=(std::string("wf").length());
+			}
 			rem++;
 			token.erase(0,rem);
 		}

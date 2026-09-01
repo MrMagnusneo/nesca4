@@ -26,6 +26,9 @@
 
 #include "include/nescadata.h"
 #include "include/nescaengine.h"
+#include "include/nescarvi.h"
+#include "include/nescaipc.h"
+#include "include/nescawf.h"
 #include "libncsnet/ncsnet/socket.h"
 #include "libncsnet/ncsnet/http.h"
 #include "libncsnet/ncsnet/ftp.h"
@@ -157,6 +160,36 @@ void NESCAPROCESSING::INIT(NESCADATA *ncsdata, int service)
 			NESCAPROCESSINGCORPUS ftp;
 			ftp.setcheck(ftp_chk_0);
 			this->methods.push_back(ftp);
+			return;
+		}
+		case S_RTSP: {
+			NESCAPROCESSINGCORPUS rtsp;
+			rtsp.setcheck(rtsp_chk_0);
+			this->methods.push_back(rtsp);
+			return;
+		}
+		case S_SSH: {
+			NESCAPROCESSINGCORPUS ssh;
+			ssh.setcheck(ssh_chk_0);
+			this->methods.push_back(ssh);
+			return;
+		}
+		case S_RVI: {
+			NESCAPROCESSINGCORPUS rvi;
+			rvi.setcheck(rvi_chk_0);
+			this->methods.push_back(rvi);
+			return;
+		}
+		case S_IPC: {
+			NESCAPROCESSINGCORPUS ipc;
+			ipc.setcheck(ipc_chk_0);
+			this->methods.push_back(ipc);
+			return;
+		}
+		case S_WF: {
+			NESCAPROCESSINGCORPUS wf;
+			wf.setcheck(wf_chk_0);
+			this->methods.push_back(wf);
 			return;
 		}
 	}
@@ -407,5 +440,196 @@ bool ftp_chk_0(NESCATARGET *target, int port,
 	}
 
 	return res;
+}
+
+bool rtsp_chk_0(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata)
+{
+	struct timeval	s, e;
+	u8		buf[4096];
+	ssize_t		n;
+	size_t		pos;
+	int		fd;
+	std::string	uri, req;
+
+	___VERBOSE;
+	uri="rtsp://"+target->get_mainip()+":"+std::to_string(port)+"/";
+	req="DESCRIBE "+uri+" RTSP/1.0\r\nCSeq: 1\r\n\r\n";
+
+	gettimeofday(&s, NULL);
+	fd=sock_session(target->get_mainip().c_str(), port, timeout, NULL, 0);
+	gettimeofday(&e, NULL);
+	if (fd<0)
+		return 0;
+	memset(buf, 0, sizeof(buf));
+	n=sock_probe(fd, buf, sizeof(buf)-1, "%s", req.c_str());
+	close(fd);
+	if (n<=0||strncmp((char*)buf, "RTSP/", 5)!=0)
+		return 0;
+
+	for (pos=0;pos<target->get_num_port();pos++)
+		if (target->get_port(pos).port==port)
+			break;
+
+	target->add_service(target->get_real_port(pos), S_RTSP, s, e);
+	target->set_bruteforce(S_RTSP, port, "");
+	return 1;
+}
+
+bool ssh_chk_0(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata)
+{
+	struct timeval	s, e;
+	u8		receive[BUFSIZ];
+	size_t		pos;
+	std::string	banner;
+	int		ret;
+
+	___VERBOSE;
+	gettimeofday(&s, NULL);
+	ret=sock_session(target->get_mainip().c_str(), port,
+		timeout, receive, sizeof(receive));
+	gettimeofday(&e, NULL);
+	if (ret<0)
+		return 0;
+	banner=std::string((char*)receive);
+	if (find_word(banner.c_str(), "SSH-")!=0)
+		return 0;
+	banner=clearbuf(banner);
+
+	for (pos=0;pos<target->get_num_port();pos++)
+		if (target->get_port(pos).port==port)
+			break;
+
+	target->add_service(target->get_real_port(pos), S_SSH, s, e);
+	target->add_info_service(target->get_real_port(pos), S_SSH,
+		banner, "header");
+	target->set_bruteforce(S_SSH, port, "");
+	return 1;
+}
+
+bool rvi_chk_0(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata)
+{
+	struct timeval	s, e;
+	u8		buf[64];
+	ssize_t		n;
+	size_t		pos;
+	int		fd;
+	std::string	probe;
+
+	___VERBOSE;
+	/* the RVI handshake is just an admin/admin login frame */
+	probe=rvi_build_login("admin", "admin");
+
+	gettimeofday(&s, NULL);
+	fd=sock_session(target->get_mainip().c_str(), port, timeout, NULL, 0);
+	gettimeofday(&e, NULL);
+	if (fd<0)
+		return 0;
+	if (sock_send(fd, probe.data(), probe.size())<=0) {
+		close(fd);
+		return 0;
+	}
+	memset(buf, 0, sizeof(buf));
+	n=sock_recv(fd, buf, sizeof(buf));
+	close(fd);
+	if (n<1||buf[0]!=0xb0)	/* 0xb0 == -80: RVI signature reply */
+		return 0;
+
+	for (pos=0;pos<target->get_num_port();pos++)
+		if (target->get_port(pos).port==port)
+			break;
+
+	target->add_service(target->get_real_port(pos), S_RVI, s, e);
+	target->set_bruteforce(S_RVI, port, "");
+	return 1;
+}
+
+bool ipc_chk_0(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata)
+{
+	struct timeval	s, e;
+	u8		buf[HTTP_BUFSZ];
+	ssize_t		n;
+	size_t		pos;
+	int		fd;
+	std::string	req, spec;
+
+	___VERBOSE;
+	req="GET / HTTP/1.1\r\nHost: "+target->get_mainip()
+		+"\r\nConnection: close\r\n\r\n";
+
+	gettimeofday(&s, NULL);
+	fd=sock_session(target->get_mainip().c_str(), port, timeout, NULL, 0);
+	gettimeofday(&e, NULL);
+	if (fd<0)
+		return 0;
+	if (sock_send(fd, req.data(), req.size())<=0) {
+		close(fd);
+		return 0;
+	}
+	memset(buf, 0, sizeof(buf));
+	n=sock_recv(fd, buf, sizeof(buf)-1);
+	close(fd);
+	if (n<=0)
+		return 0;
+
+	spec=ipc_detect_spec(std::string((char*)buf, n));
+	if (spec.empty())	/* unknown vendor -> not an IPC we can brute */
+		return 0;
+
+	for (pos=0;pos<target->get_num_port();pos++)
+		if (target->get_port(pos).port==port)
+			break;
+
+	target->add_service(target->get_real_port(pos), S_IPC, s, e);
+	target->add_info_service(target->get_real_port(pos), S_IPC,
+		spec, "vendor");
+	target->set_bruteforce(S_IPC, port, spec);	/* SPEC in 'other' */
+	return 1;
+}
+
+bool wf_chk_0(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata)
+{
+	struct timeval	s, e;
+	u8		buf[HTTP_BUFSZ];
+	ssize_t		n;
+	size_t		pos;
+	int		fd;
+	std::string	req;
+	WFFORM		form;
+
+	___VERBOSE;
+	req="GET / HTTP/1.1\r\nHost: "+target->get_mainip()
+		+"\r\nConnection: close\r\n\r\n";
+
+	gettimeofday(&s, NULL);
+	fd=sock_session(target->get_mainip().c_str(), port, timeout, NULL, 0);
+	gettimeofday(&e, NULL);
+	if (fd<0)
+		return 0;
+	if (sock_send(fd, req.data(), req.size())<=0) {
+		close(fd);
+		return 0;
+	}
+	memset(buf, 0, sizeof(buf));
+	n=sock_recv(fd, buf, sizeof(buf)-1);
+	close(fd);
+	if (n<=0)
+		return 0;
+
+	form=wf_parse_form(std::string((char*)buf, n));
+	if (!form.ok)		/* no login form on the landing page */
+		return 0;
+
+	for (pos=0;pos<target->get_num_port();pos++)
+		if (target->get_port(pos).port==port)
+			break;
+
+	target->add_service(target->get_real_port(pos), S_WF, s, e);
+	target->set_bruteforce(S_WF, port, wf_pack(form));
+	return 1;
 }
 #undef ___VERBOSE
