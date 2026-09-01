@@ -27,6 +27,7 @@
 #include "include/nescadata.h"
 #include "include/nescaengine.h"
 #include "include/nescarvi.h"
+#include "include/nescaipc.h"
 #include "libncsnet/ncsnet/socket.h"
 #include "libncsnet/ncsnet/http.h"
 #include "libncsnet/ncsnet/ftp.h"
@@ -176,6 +177,12 @@ void NESCAPROCESSING::INIT(NESCADATA *ncsdata, int service)
 			NESCAPROCESSINGCORPUS rvi;
 			rvi.setcheck(rvi_chk_0);
 			this->methods.push_back(rvi);
+			return;
+		}
+		case S_IPC: {
+			NESCAPROCESSINGCORPUS ipc;
+			ipc.setcheck(ipc_chk_0);
+			this->methods.push_back(ipc);
 			return;
 		}
 	}
@@ -529,6 +536,50 @@ bool rvi_chk_0(NESCATARGET *target, int port,
 
 	target->add_service(target->get_real_port(pos), S_RVI, s, e);
 	target->set_bruteforce(S_RVI, port, "");
+	return 1;
+}
+
+bool ipc_chk_0(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata)
+{
+	struct timeval	s, e;
+	u8		buf[HTTP_BUFSZ];
+	ssize_t		n;
+	size_t		pos;
+	int		fd;
+	std::string	req, spec;
+
+	___VERBOSE;
+	req="GET / HTTP/1.1\r\nHost: "+target->get_mainip()
+		+"\r\nConnection: close\r\n\r\n";
+
+	gettimeofday(&s, NULL);
+	fd=sock_session(target->get_mainip().c_str(), port, timeout, NULL, 0);
+	gettimeofday(&e, NULL);
+	if (fd<0)
+		return 0;
+	if (sock_send(fd, req.data(), req.size())<=0) {
+		close(fd);
+		return 0;
+	}
+	memset(buf, 0, sizeof(buf));
+	n=sock_recv(fd, buf, sizeof(buf)-1);
+	close(fd);
+	if (n<=0)
+		return 0;
+
+	spec=ipc_detect_spec(std::string((char*)buf, n));
+	if (spec.empty())	/* unknown vendor -> not an IPC we can brute */
+		return 0;
+
+	for (pos=0;pos<target->get_num_port();pos++)
+		if (target->get_port(pos).port==port)
+			break;
+
+	target->add_service(target->get_real_port(pos), S_IPC, s, e);
+	target->add_info_service(target->get_real_port(pos), S_IPC,
+		spec, "vendor");
+	target->set_bruteforce(S_IPC, port, spec);	/* SPEC in 'other' */
 	return 1;
 }
 #undef ___VERBOSE

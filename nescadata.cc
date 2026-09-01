@@ -1655,6 +1655,10 @@ void NESCAOPTS::set_s_param(const std::string &s_param)
 				service=S_RVI;
 				rem=(std::string("rvi").length());
 			}
+			if (!find_word(token.c_str(), "ipc")) {
+				service=S_IPC;
+				rem=(std::string("ipc").length());
+			}
 			rem++;
 			token.erase(0,rem);
 		}

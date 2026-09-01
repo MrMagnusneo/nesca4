@@ -3,7 +3,7 @@ CC        = @CXX@
 CFLAGS    = @CFLAGS@ @OCFLAGS@
 SRCS      = nesca4.cc nescaprint.cc nescadata.cc \
 						nescaengine.cc nescaservices.cc nescafind.cc \
-						nescabrute.cc nescartsp.cc nescassh.cc nescarvi.cc
+						nescabrute.cc nescartsp.cc nescassh.cc nescarvi.cc nescaipc.cc
 OBJS      = $(SRCS:.cc=.o)
 LIBNCSNET = libncsnet/libncsnet.a
 LIBS_EXTRA = @LIBS_EXTRA@
@@ -26,6 +26,9 @@ test: $(LIBNCSNET)
 	$(CXX) -std=c++17 -Iinclude -pthread tests/test_rvi.cc nescarvi.cc \
 		$(LIBNCSNET) -o /tmp/nesca4_test_rvi
 	/tmp/nesca4_test_rvi
+	$(CXX) -std=c++17 -Iinclude -pthread tests/test_ipc.cc nescaipc.cc \
+		$(LIBNCSNET) -o /tmp/nesca4_test_ipc
+	/tmp/nesca4_test_ipc
 
 install:
 	cp nesca4 /usr/local/bin

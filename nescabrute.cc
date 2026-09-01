@@ -138,6 +138,10 @@ void NESCABRUTE::probe(int fd, u8 service, const std::string &ip,
 		case RVI_BRUTEFORCE:
 			*auth=rvi_qprc_auth(fd, login, pass);
 			return;
+		case IPC_BRUTEFORCE:
+			/* 'path' carries the vendor SPEC for IPC jobs */
+			*auth=ipc_qprc_auth(fd, ip, srvport, login, pass, path);
+			return;
 	}
 }
 
