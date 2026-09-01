@@ -22,57 +22,23 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef NESCAFIND_H
-#define NESCAFIND_H
+#ifndef NESCASMTP_H
+#define NESCASMTP_H
 
-#include <iostream>
-#include <vector>
-#include <sstream>
-#include <fstream>
-
-#include "nescadata.h"
-
-/* ubi petere? */
-#define FIND_ALL		-1
-#define FIND_HTTP_REDIRECT	0
-#define FIND_HTTP_TITLE		1
-#define FIND_HTTP_HTML		2
-#define FIND_MAC		3
-#define FIND_DNS		4
-#define FIND_IP			5
-#define FIND_FTP_HELLO		6
-
-class	NESCAOPTS;
-class	NESCATARGET;
+#include <string>
+#include "../libncsnet/ncsnet/sys/types.h"
 
 /*
- * regex:
- *   R'\b173\.194\.(?:[0-9]{1,3})\.(?:[0-9]{1,3})\b', 'GOOOGLE', 0, 5;
- * no-regex:
- *   '173', 'GOOOGLE', 0, 5;
+ * SMTP AUTH LOGIN bruteforce. libncsnet's smtp.h only exposes a version
+ * probe, so the AUTH LOGIN exchange is implemented directly:
+ *   S: 220 ...          (greeting)
+ *   C: EHLO nesca
+ *   C: AUTH LOGIN       -> 334 (base64 "Username:")
+ *   C: base64(login)    -> 334 (base64 "Password:")
+ *   C: base64(pass)     -> 235 = OK, 535 = denied
  */
-
-struct NESCAFINDLINE {
-	std::string	node,info;
-	int		find;
-	bool		bruteforce,regex;
-};
-
-struct NESCAFINDRESULT {
-	std::string info;
-	bool bruteforce,ok;
-};
-
-class NESCAFIND {
-	std::string path;
-
-	NESCAFINDLINE			lineget(const std::string &txt);
-	std::vector<NESCAFINDLINE>	fileget(void); /* - */
-	NESCAFINDRESULT			fileprobe(NESCATARGET *target, const std::string &node,
-						 int find, int service=-1, int port=-1);
-	void				init(NESCAOPTS *opts);
-public:
-	NESCAFIND(NESCADATA *ncsdata);
-};
+bool smtp_qprc_auth(int fd, const std::string &ip, u16 port,
+	const std::string &login, const std::string &pass,
+	long long timeout);
 
 #endif

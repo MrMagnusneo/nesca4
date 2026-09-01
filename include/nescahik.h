@@ -22,57 +22,23 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef NESCAFIND_H
-#define NESCAFIND_H
+#ifndef NESCAHIK_H
+#define NESCAHIK_H
 
-#include <iostream>
-#include <vector>
-#include <sstream>
-#include <fstream>
-
-#include "nescadata.h"
-
-/* ubi petere? */
-#define FIND_ALL		-1
-#define FIND_HTTP_REDIRECT	0
-#define FIND_HTTP_TITLE		1
-#define FIND_HTTP_HTML		2
-#define FIND_MAC		3
-#define FIND_DNS		4
-#define FIND_IP			5
-#define FIND_FTP_HELLO		6
-
-class	NESCAOPTS;
-class	NESCATARGET;
+#include "../libncsnet/ncsnet/sys/types.h"
 
 /*
- * regex:
- *   R'\b173\.194\.(?:[0-9]{1,3})\.(?:[0-9]{1,3})\b', 'GOOOGLE', 0, 5;
- * no-regex:
- *   '173', 'GOOOGLE', 0, 5;
+ * Hikvision-family DVR/NVR detection, ported from the legacy nesca
+ * HikvisionLogin (checkHikk / checkSAFARI). These are DETECTION ONLY:
+ * the credential login in old nesca used the proprietary HCNetSDK
+ * (hik_login_ptr / NET_DVR_DEVICEINFO_V30), which cannot be reproduced
+ * natively. The open RVI protocol IS brute-forced, see nescarvi.
  */
 
-struct NESCAFINDLINE {
-	std::string	node,info;
-	int		find;
-	bool		bruteforce,regex;
-};
+/* iVMS (Hikvision) handshake: send 32-byte probe, success if reply[3]==0x10 */
+bool hik_ivms_detect(int fd);
 
-struct NESCAFINDRESULT {
-	std::string info;
-	bool bruteforce,ok;
-};
-
-class NESCAFIND {
-	std::string path;
-
-	NESCAFINDLINE			lineget(const std::string &txt);
-	std::vector<NESCAFINDLINE>	fileget(void); /* - */
-	NESCAFINDRESULT			fileprobe(NESCATARGET *target, const std::string &node,
-						 int find, int service=-1, int port=-1);
-	void				init(NESCAOPTS *opts);
-public:
-	NESCAFIND(NESCADATA *ncsdata);
-};
+/* SAFARI handshake: send 128-byte probe, success if reply[0]!=0 */
+bool hik_safari_detect(int fd);
 
 #endif

@@ -146,6 +146,10 @@ void NESCABRUTE::probe(int fd, u8 service, const std::string &ip,
 			/* 'path' carries the packed form spec for WF jobs */
 			*auth=wf_qprc_auth(fd, ip, srvport, login, pass, path);
 			return;
+		case SMTP_BRUTEFORCE:
+			*auth=smtp_qprc_auth(fd, ip, srvport, login, pass,
+				restimeout);
+			return;
 	}
 }
 

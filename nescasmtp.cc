@@ -22,57 +22,56 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef NESCAFIND_H
-#define NESCAFIND_H
+#include "include/nescasmtp.h"
 
-#include <iostream>
-#include <vector>
-#include <sstream>
-#include <fstream>
+#include <cstring>
 
-#include "nescadata.h"
+#include "libncsnet/ncsnet/socket.h"
+#include "libncsnet/ncsnet/base64.h"
 
-/* ubi petere? */
-#define FIND_ALL		-1
-#define FIND_HTTP_REDIRECT	0
-#define FIND_HTTP_TITLE		1
-#define FIND_HTTP_HTML		2
-#define FIND_MAC		3
-#define FIND_DNS		4
-#define FIND_IP			5
-#define FIND_FTP_HELLO		6
+static std::string b64(const std::string &s)
+{
+	char	out[512];
+	size_t	n=base64encode(s.data(), s.size(), out, sizeof out);
+	return std::string(out, n);
+}
 
-class	NESCAOPTS;
-class	NESCATARGET;
+/* send a line, read reply, return the leading 3-digit code (or -1) */
+static int smtp_cmd(int fd, const std::string &line, char *buf, size_t buflen)
+{
+	ssize_t n;
+	if (!line.empty())
+		if (sock_send(fd, line.data(), line.size())<=0)
+			return -1;
+	memset(buf, 0, buflen);
+	n=sock_recv(fd, buf, buflen-1);
+	if (n<=0)
+		return -1;
+	return atoi(buf);
+}
 
-/*
- * regex:
- *   R'\b173\.194\.(?:[0-9]{1,3})\.(?:[0-9]{1,3})\b', 'GOOOGLE', 0, 5;
- * no-regex:
- *   '173', 'GOOOGLE', 0, 5;
- */
+bool smtp_qprc_auth(int fd, const std::string &ip, u16 port,
+	const std::string &login, const std::string &pass,
+	long long timeout)
+{
+	char	buf[1024];
+	int	code;
 
-struct NESCAFINDLINE {
-	std::string	node,info;
-	int		find;
-	bool		bruteforce,regex;
-};
+	(void)ip; (void)port; (void)timeout;
 
-struct NESCAFINDRESULT {
-	std::string info;
-	bool bruteforce,ok;
-};
-
-class NESCAFIND {
-	std::string path;
-
-	NESCAFINDLINE			lineget(const std::string &txt);
-	std::vector<NESCAFINDLINE>	fileget(void); /* - */
-	NESCAFINDRESULT			fileprobe(NESCATARGET *target, const std::string &node,
-						 int find, int service=-1, int port=-1);
-	void				init(NESCAOPTS *opts);
-public:
-	NESCAFIND(NESCADATA *ncsdata);
-};
-
-#endif
+	/* greeting */
+	if (smtp_cmd(fd, "", buf, sizeof buf)!=220)
+		return false;
+	/* EHLO */
+	if (smtp_cmd(fd, "EHLO nesca\r\n", buf, sizeof buf)!=250)
+		return false;
+	/* AUTH LOGIN */
+	if (smtp_cmd(fd, "AUTH LOGIN\r\n", buf, sizeof buf)!=334)
+		return false;
+	/* username */
+	if (smtp_cmd(fd, b64(login)+"\r\n", buf, sizeof buf)!=334)
+		return false;
+	/* password */
+	code=smtp_cmd(fd, b64(pass)+"\r\n", buf, sizeof buf);
+	return code==235;
+}
