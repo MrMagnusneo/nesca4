@@ -123,7 +123,8 @@ struct option longopts[]={
 	{"threads-brute", 1, 0, IDOPT_THREADS_BRUTE},
 	{"adler32", 0, 0, IDOPT_ADLER32},
 	{"onlyopen", 0, 0, IDOPT_ONLYOPEN},
-	{"s", 1, 0, IDOPT_S}
+	{"s", 1, 0, IDOPT_S},
+	{0, 0, 0, 0}	/* terminator required by getopt_long_only */
 };
 
 void NESCAOPTS::opts_init(void)
@@ -736,7 +737,7 @@ bool NESCAOPTS::parse_cfgopt(std::string line, struct _cfgopt *res, char *errbuf
 
 	/* getting number quotes */
 	for (i=0;i<line.length();++i)
-		if (line[i]==OPENCLOSEOPT&&line[(i-1)]!=SPECOPT)
+		if (line[i]==OPENCLOSEOPT&&(i==0||line[(i-1)]!=SPECOPT))
 			quotes++;
 
 	/* miss (')name'=val; */
@@ -837,7 +838,7 @@ bool NESCAOPTS::parse_cfgopt(std::string line, struct _cfgopt *res, char *errbuf
 
 	/* find id name */
 	for (const auto&o:longopts) {
-		if (res->name==std::string(o.name)) {
+		if (o.name&&res->name==std::string(o.name)) {
 			if (o.has_arg==0)
 				res->nullval=1;
 			res->id=o.val;
@@ -1829,7 +1830,7 @@ bool NESCAOPTS::check_onlyopen_flag(void) { return this->onlyopen_flag; }
 bool NESCAOPTS::is_requiread_options(const std::string &opt)
 {
 	for (const auto&o:longopts) {
-		if (!strcmp(o.name, opt.c_str())) {
+		if (o.name&&!strcmp(o.name, opt.c_str())) {
 			if (o.has_arg==1)
 				return true;
 			else
