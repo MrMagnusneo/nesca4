@@ -1664,6 +1664,14 @@ void NESCAOPTS::set_s_param(const std::string &s_param)
 				service=S_WF;
 				rem=(std::string("wf").length());
 			}
+			if (!find_word(token.c_str(), "smtp")) {
+				service=S_SMTP;
+				rem=(std::string("smtp").length());
+			}
+			if (!find_word(token.c_str(), "hik")) {
+				service=S_HIK;
+				rem=(std::string("hik").length());
+			}
 			rem++;
 			token.erase(0,rem);
 		}

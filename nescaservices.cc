@@ -29,6 +29,8 @@
 #include "include/nescarvi.h"
 #include "include/nescaipc.h"
 #include "include/nescawf.h"
+#include "include/nescasmtp.h"
+#include "include/nescahik.h"
 #include "libncsnet/ncsnet/socket.h"
 #include "libncsnet/ncsnet/http.h"
 #include "libncsnet/ncsnet/ftp.h"
@@ -190,6 +192,18 @@ void NESCAPROCESSING::INIT(NESCADATA *ncsdata, int service)
 			NESCAPROCESSINGCORPUS wf;
 			wf.setcheck(wf_chk_0);
 			this->methods.push_back(wf);
+			return;
+		}
+		case S_SMTP: {
+			NESCAPROCESSINGCORPUS smtp;
+			smtp.setcheck(smtp_chk_0);
+			this->methods.push_back(smtp);
+			return;
+		}
+		case S_HIK: {
+			NESCAPROCESSINGCORPUS hik;
+			hik.setcheck(hik_chk_0);
+			this->methods.push_back(hik);
 			return;
 		}
 	}
@@ -630,6 +644,81 @@ bool wf_chk_0(NESCATARGET *target, int port,
 
 	target->add_service(target->get_real_port(pos), S_WF, s, e);
 	target->set_bruteforce(S_WF, port, wf_pack(form));
+	return 1;
+}
+
+bool smtp_chk_0(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata)
+{
+	struct timeval	s, e;
+	u8		receive[BUFSIZ];
+	size_t		pos;
+	std::string	banner;
+	int		ret;
+
+	___VERBOSE;
+	gettimeofday(&s, NULL);
+	ret=sock_session(target->get_mainip().c_str(), port,
+		timeout, receive, sizeof(receive));
+	gettimeofday(&e, NULL);
+	if (ret<0)
+		return 0;
+	banner=std::string((char*)receive);
+	if (atoi(banner.c_str())!=220)	/* SMTP greeting */
+		return 0;
+	banner=clearbuf(banner);
+
+	for (pos=0;pos<target->get_num_port();pos++)
+		if (target->get_port(pos).port==port)
+			break;
+
+	target->add_service(target->get_real_port(pos), S_SMTP, s, e);
+	target->add_info_service(target->get_real_port(pos), S_SMTP,
+		banner, "header");
+	target->set_bruteforce(S_SMTP, port, "");
+	return 1;
+}
+
+bool hik_chk_0(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata)
+{
+	struct timeval	s, e;
+	size_t		pos;
+	int		fd;
+	bool		ivms, safari;
+	std::string	kind;
+
+	___VERBOSE;
+	/* iVMS and SAFARI need separate connections (each consumes the fd) */
+	gettimeofday(&s, NULL);
+	fd=sock_session(target->get_mainip().c_str(), port, timeout, NULL, 0);
+	gettimeofday(&e, NULL);
+	if (fd<0)
+		return 0;
+	ivms=hik_ivms_detect(fd);
+	close(fd);
+
+	safari=false;
+	if (!ivms) {
+		fd=sock_session(target->get_mainip().c_str(), port,
+			timeout, NULL, 0);
+		if (fd<0)
+			return 0;
+		safari=hik_safari_detect(fd);
+		close(fd);
+	}
+	if (!ivms&&!safari)
+		return 0;
+	kind=ivms?"Hikvision iVMS":"Hikvision SAFARI";
+
+	for (pos=0;pos<target->get_num_port();pos++)
+		if (target->get_port(pos).port==port)
+			break;
+
+	/* detection only: credential login needs the proprietary HCNetSDK */
+	target->add_service(target->get_real_port(pos), S_HIK, s, e);
+	target->add_info_service(target->get_real_port(pos), S_HIK,
+		kind, "vendor");
 	return 1;
 }
 #undef ___VERBOSE
