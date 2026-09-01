@@ -31,6 +31,7 @@
 
 #include "nescadata.h"
 #include "nescaengine.h"
+#include "nescartsp.h"
 
 #include "../libncsnet/ncsnet/mt19937.h"
 #include "../libncsnet/ncsnet/socket.h"
@@ -41,6 +42,7 @@
 #define START_TIMEOUT		1e+9
 #define HTTP_BRUTEFORCE		S_HTTP
 #define FTP_BRUTEFORCE		S_FTP
+#define RTSP_BRUTEFORCE		S_RTSP
 /*
 #define SMTP_BRUTEFORCE      2
 #define RVI_BRUTEFORCE       3
@@ -50,6 +52,7 @@
 class NESCABRUTE {
 	std::string		reslogin, respass;
 	long long		restimeout, rtt;
+	u16			srvport;
 	std::vector<int>	fds;
 	bool			ok;
 

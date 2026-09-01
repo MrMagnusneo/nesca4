@@ -23,6 +23,7 @@
 */
 
 #include "include/nescabrute.h"
+#include "include/nescartsp.h"
 #include "include/nescadata.h"
 #include "libncsnet/ncsnet/socket.h"
 #include "libncsnet/ncsnet/utils.h"
@@ -126,6 +127,10 @@ void NESCABRUTE::probe(int fd, u8 service, const std::string &ip,
 			*auth=http_basicauth(fd, ip.c_str(), path.c_str(),
 				login.c_str(), pass.c_str());
 			return;
+		case RTSP_BRUTEFORCE:
+			*auth=rtsp_qprc_auth(fd, ip, srvport, login, pass,
+				restimeout);
+			return;
 	}
 }
 
@@ -136,6 +141,8 @@ NESCABRUTE::NESCABRUTE(size_t threads, const std::string &ip, const std::string 
 	std::vector<std::future<void>>	futures;
 	std::atomic<bool>		auth(false);
 	size_t				i=0, realthreads=0;
+
+	this->srvport=port;
 
 	realthreads=((threads>(login.size()*pass.size())))?
 		(login.size()*pass.size()/* /2 */):threads;
