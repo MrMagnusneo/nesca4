@@ -1,0 +1,10 @@
+# build artifacts
+*.o
+/nesca4
+/Makefile
+/config.h
+/config.status
+/config.log
+/config.h.in~
+/configure~
+/autom4te.cache/
