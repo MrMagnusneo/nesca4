@@ -142,6 +142,10 @@ void NESCABRUTE::probe(int fd, u8 service, const std::string &ip,
 			/* 'path' carries the vendor SPEC for IPC jobs */
 			*auth=ipc_qprc_auth(fd, ip, srvport, login, pass, path);
 			return;
+		case WF_BRUTEFORCE:
+			/* 'path' carries the packed form spec for WF jobs */
+			*auth=wf_qprc_auth(fd, ip, srvport, login, pass, path);
+			return;
 	}
 }
 
