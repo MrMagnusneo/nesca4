@@ -140,11 +140,12 @@
 #define INCLUDE_TOKEN		"INCLUDE"
 #define _ERRBUFMAXLEN		1024
 
-#define S_NUM			4
+#define S_NUM			5
 #define S_HTTP			0
 #define S_FTP			1
 #define S_RTSP			2
 #define S_SSH			3
+#define S_RVI			4
 
 #define DEFAULT_SERVICES_PATH	"resources/nesca-services"
 #define DEFAULT_DATABASE_PATH	"resources/nesca-database"

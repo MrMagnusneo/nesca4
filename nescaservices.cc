@@ -26,6 +26,7 @@
 
 #include "include/nescadata.h"
 #include "include/nescaengine.h"
+#include "include/nescarvi.h"
 #include "libncsnet/ncsnet/socket.h"
 #include "libncsnet/ncsnet/http.h"
 #include "libncsnet/ncsnet/ftp.h"
@@ -169,6 +170,12 @@ void NESCAPROCESSING::INIT(NESCADATA *ncsdata, int service)
 			NESCAPROCESSINGCORPUS ssh;
 			ssh.setcheck(ssh_chk_0);
 			this->methods.push_back(ssh);
+			return;
+		}
+		case S_RVI: {
+			NESCAPROCESSINGCORPUS rvi;
+			rvi.setcheck(rvi_chk_0);
+			this->methods.push_back(rvi);
 			return;
 		}
 	}
@@ -484,6 +491,44 @@ bool ssh_chk_0(NESCATARGET *target, int port,
 	target->add_info_service(target->get_real_port(pos), S_SSH,
 		banner, "header");
 	target->set_bruteforce(S_SSH, port, "");
+	return 1;
+}
+
+bool rvi_chk_0(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata)
+{
+	struct timeval	s, e;
+	u8		buf[64];
+	ssize_t		n;
+	size_t		pos;
+	int		fd;
+	std::string	probe;
+
+	___VERBOSE;
+	/* the RVI handshake is just an admin/admin login frame */
+	probe=rvi_build_login("admin", "admin");
+
+	gettimeofday(&s, NULL);
+	fd=sock_session(target->get_mainip().c_str(), port, timeout, NULL, 0);
+	gettimeofday(&e, NULL);
+	if (fd<0)
+		return 0;
+	if (sock_send(fd, probe.data(), probe.size())<=0) {
+		close(fd);
+		return 0;
+	}
+	memset(buf, 0, sizeof(buf));
+	n=sock_recv(fd, buf, sizeof(buf));
+	close(fd);
+	if (n<1||buf[0]!=0xb0)	/* 0xb0 == -80: RVI signature reply */
+		return 0;
+
+	for (pos=0;pos<target->get_num_port();pos++)
+		if (target->get_port(pos).port==port)
+			break;
+
+	target->add_service(target->get_real_port(pos), S_RVI, s, e);
+	target->set_bruteforce(S_RVI, port, "");
 	return 1;
 }
 #undef ___VERBOSE

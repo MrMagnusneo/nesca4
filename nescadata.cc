@@ -1651,6 +1651,10 @@ void NESCAOPTS::set_s_param(const std::string &s_param)
 				service=S_SSH;
 				rem=(std::string("ssh").length());
 			}
+			if (!find_word(token.c_str(), "rvi")) {
+				service=S_RVI;
+				rem=(std::string("rvi").length());
+			}
 			rem++;
 			token.erase(0,rem);
 		}

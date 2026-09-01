@@ -135,6 +135,9 @@ void NESCABRUTE::probe(int fd, u8 service, const std::string &ip,
 			*auth=ssh_brute_auth(fd, ip, srvport, login, pass,
 				restimeout);
 			return;
+		case RVI_BRUTEFORCE:
+			*auth=rvi_qprc_auth(fd, login, pass);
+			return;
 	}
 }
 
