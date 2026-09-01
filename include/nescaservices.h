@@ -95,6 +95,8 @@ bool http_chk_0(NESCATARGET *target, int port,
 	long long timeout, NESCADATA *ncsdata);
 bool ftp_chk_0(NESCATARGET *target, int port,
 	long long timeout, NESCADATA *ncsdata);
+bool rtsp_chk_0(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata);
 bool http_m_htmlredirtitle(NESCATARGET *target, int port,
 	long long timeout, NESCADATA *ncsdata);
 

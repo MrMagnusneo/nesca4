@@ -159,6 +159,12 @@ void NESCAPROCESSING::INIT(NESCADATA *ncsdata, int service)
 			this->methods.push_back(ftp);
 			return;
 		}
+		case S_RTSP: {
+			NESCAPROCESSINGCORPUS rtsp;
+			rtsp.setcheck(rtsp_chk_0);
+			this->methods.push_back(rtsp);
+			return;
+		}
 	}
 }
 
@@ -407,5 +413,39 @@ bool ftp_chk_0(NESCATARGET *target, int port,
 	}
 
 	return res;
+}
+
+bool rtsp_chk_0(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata)
+{
+	struct timeval	s, e;
+	u8		buf[4096];
+	ssize_t		n;
+	size_t		pos;
+	int		fd;
+	std::string	uri, req;
+
+	___VERBOSE;
+	uri="rtsp://"+target->get_mainip()+":"+std::to_string(port)+"/";
+	req="DESCRIBE "+uri+" RTSP/1.0\r\nCSeq: 1\r\n\r\n";
+
+	gettimeofday(&s, NULL);
+	fd=sock_session(target->get_mainip().c_str(), port, timeout, NULL, 0);
+	gettimeofday(&e, NULL);
+	if (fd<0)
+		return 0;
+	memset(buf, 0, sizeof(buf));
+	n=sock_probe(fd, buf, sizeof(buf)-1, "%s", req.c_str());
+	close(fd);
+	if (n<=0||strncmp((char*)buf, "RTSP/", 5)!=0)
+		return 0;
+
+	for (pos=0;pos<target->get_num_port();pos++)
+		if (target->get_port(pos).port==port)
+			break;
+
+	target->add_service(target->get_real_port(pos), S_RTSP, s, e);
+	target->set_bruteforce(S_RTSP, port, "");
+	return 1;
 }
 #undef ___VERBOSE

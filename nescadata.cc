@@ -1643,6 +1643,10 @@ void NESCAOPTS::set_s_param(const std::string &s_param)
 				service=S_FTP;
 				rem=(std::string("ftp").length());
 			}
+			if (!find_word(token.c_str(), "rtsp")) {
+				service=S_RTSP;
+				rem=(std::string("rtsp").length());
+			}
 			rem++;
 			token.erase(0,rem);
 		}
