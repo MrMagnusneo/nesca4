@@ -18,6 +18,11 @@ $(TARGET): $(OBJS) $(LIBNCSNET)
 $(LIBNCSNET):
 	cd "libncsnet/";make -j;cd ..
 
+test: $(LIBNCSNET)
+	$(CXX) -std=c++17 -Iinclude -pthread tests/test_rtsp.cc nescartsp.cc \
+		$(LIBNCSNET) -o /tmp/nesca4_test_rtsp
+	/tmp/nesca4_test_rtsp
+
 install:
 	cp nesca4 /usr/local/bin
 	mkdir /usr/local/share/nesca4
