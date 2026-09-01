@@ -53,4 +53,14 @@ std::string rtsp_digest_response(const std::string &user,
 bool rtsp_parse_auth(const std::string &response, std::string &realm,
 	std::string &nonce, bool &basic);
 
+/*
+ * Attempt one RTSP DESCRIBE auth on an already-connected fd. Sends an
+ * unauthenticated DESCRIBE first; on 200 OK returns true (open stream),
+ * on a 401 challenge retries with Basic or Digest built from login/pass.
+ * Never closes fd. timeout is in nanoseconds.
+ */
+bool rtsp_qprc_auth(int fd, const std::string &ip, u16 port,
+	const std::string &login, const std::string &pass,
+	long long timeout);
+
 #endif
