@@ -25,14 +25,15 @@
 #ifndef NESCAHIK_H
 #define NESCAHIK_H
 
+#include <string>
 #include "../libncsnet/ncsnet/sys/types.h"
 
 /*
- * Hikvision-family DVR/NVR detection, ported from the legacy nesca
- * HikvisionLogin (checkHikk / checkSAFARI). These are DETECTION ONLY:
- * the credential login in old nesca used the proprietary HCNetSDK
- * (hik_login_ptr / NET_DVR_DEVICEINFO_V30), which cannot be reproduced
- * natively. The open RVI protocol IS brute-forced, see nescarvi.
+ * Hikvision-family DVR/NVR support, ported from the legacy nesca
+ * HikvisionLogin. Detection (checkHikk / checkSAFARI) is native. iVMS
+ * credential login uses the Hikvision HCNetSDK exactly as old nesca did,
+ * only loaded via dlopen at runtime instead of Windows LoadLibrary. The
+ * open RVI protocol is brute-forced natively, see nescarvi.
  */
 
 /* iVMS (Hikvision) handshake: send 32-byte probe, success if reply[3]==0x10 */
@@ -40,5 +41,16 @@ bool hik_ivms_detect(int fd);
 
 /* SAFARI handshake: send 128-byte probe, success if reply[0]!=0 */
 bool hik_safari_detect(int fd);
+
+/*
+ * iVMS credential login via the Hikvision HCNetSDK, adapted from the
+ * legacy nesca hikLogin (NET_DVR_Init / NET_DVR_Login_V30). The SDK is
+ * loaded at runtime with dlopen("libhcnetsdk.so"), so this always
+ * compiles; when the SDK library is not present it returns false and
+ * the service is effectively login-disabled (detection still works).
+ * Returns true on a successful login for login/pass.
+ */
+bool hik_ivms_auth(const std::string &ip, u16 port,
+	const std::string &login, const std::string &pass);
 
 #endif

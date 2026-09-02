@@ -150,6 +150,11 @@ void NESCABRUTE::probe(int fd, u8 service, const std::string &ip,
 			*auth=smtp_qprc_auth(fd, ip, srvport, login, pass,
 				restimeout);
 			return;
+		case HIK_BRUTEFORCE:
+			/* 'path'=="ivms" -> HCNetSDK login (SDK loaded at runtime) */
+			if (path=="ivms")
+				*auth=hik_ivms_auth(ip, srvport, login, pass);
+			return;
 	}
 }
 

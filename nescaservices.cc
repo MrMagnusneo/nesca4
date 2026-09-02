@@ -715,10 +715,13 @@ bool hik_chk_0(NESCATARGET *target, int port,
 		if (target->get_port(pos).port==port)
 			break;
 
-	/* detection only: credential login needs the proprietary HCNetSDK */
 	target->add_service(target->get_real_port(pos), S_HIK, s, e);
 	target->add_info_service(target->get_real_port(pos), S_HIK,
 		kind, "vendor");
+	/* iVMS can be brute-forced via HCNetSDK (loaded at runtime); SAFARI
+	 * has no SDK login path, so it stays detection-only. */
+	if (ivms)
+		target->set_bruteforce(S_HIK, port, "ivms");
 	return 1;
 }
 #undef ___VERBOSE
