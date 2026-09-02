@@ -37,6 +37,7 @@
 #include "nescaipc.h"
 #include "nescawf.h"
 #include "nescasmtp.h"
+#include "nescahik.h"
 
 #include "../libncsnet/ncsnet/mt19937.h"
 #include "../libncsnet/ncsnet/socket.h"
@@ -53,6 +54,7 @@
 #define IPC_BRUTEFORCE		S_IPC
 #define WF_BRUTEFORCE		S_WF
 #define SMTP_BRUTEFORCE		S_SMTP
+#define HIK_BRUTEFORCE		S_HIK
 
 class NESCABRUTE {
 	std::string		reslogin, respass;

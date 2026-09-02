@@ -40,4 +40,8 @@ static void test_ivms_miss(void){u16 p=start_fake(3,0x00);std::this_thread::slee
 static void test_safari_hit(void){u16 p=start_fake(0,0x42);std::this_thread::sleep_for(std::chrono::milliseconds(40));int fd=fconn(p);assert(hik_safari_detect(fd)==true);close(fd);}
 static void test_safari_miss(void){u16 p=start_fake(-1,0);std::this_thread::sleep_for(std::chrono::milliseconds(40));int fd=fconn(p);assert(hik_safari_detect(fd)==false);close(fd);}
 
-int main(void){test_ivms_hit();test_ivms_miss();test_safari_hit();test_safari_miss();printf("test_hik: all passed\n");return 0;}
+/* HCNetSDK is not present in the test environment: login must degrade
+ * to false rather than crash. */
+static void test_ivms_auth_no_sdk(void){assert(hik_ivms_auth("127.0.0.1",8000,"admin","12345")==false);}
+
+int main(void){test_ivms_hit();test_ivms_miss();test_safari_hit();test_safari_miss();test_ivms_auth_no_sdk();printf("test_hik: all passed\n");return 0;}

@@ -11,7 +11,7 @@ LIBS_EXTRA = @LIBS_EXTRA@
 all: $(TARGET)
 
 $(TARGET): $(OBJS) $(LIBNCSNET)
-	$(CXX) $^ -o $@ $(CFLAGS) $(LIBS_EXTRA)
+	$(CXX) $^ -o $@ $(CFLAGS) $(LIBS_EXTRA) -ldl
 
 %.o: %.cc
 	$(CXX) -c $< -o $@ $(CFLAGS)
@@ -36,7 +36,7 @@ test: $(LIBNCSNET)
 		$(LIBNCSNET) -o /tmp/nesca4_test_smtp
 	/tmp/nesca4_test_smtp
 	$(CXX) -std=c++17 -Iinclude -pthread tests/test_hik.cc nescahik.cc \
-		$(LIBNCSNET) -o /tmp/nesca4_test_hik
+		$(LIBNCSNET) -ldl -o /tmp/nesca4_test_hik
 	/tmp/nesca4_test_hik
 
 install:
