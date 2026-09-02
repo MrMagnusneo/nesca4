@@ -24,6 +24,7 @@
 
 #include "include/nescabrute.h"
 #include "include/nescartsp.h"
+#include "include/nescafp.h"
 #include "include/nescadata.h"
 #include "libncsnet/ncsnet/socket.h"
 #include "libncsnet/ncsnet/utils.h"
@@ -124,8 +125,18 @@ void NESCABRUTE::probe(int fd, u8 service, const std::string &ip,
 			*auth=ftp_qprc_auth(fd, login.c_str(), pass.c_str());
 			return;
 		case HTTP_BRUTEFORCE:
-			*auth=http_basicauth(fd, ip.c_str(), path.c_str(),
-				login.c_str(), pass.c_str());
+			/* 'path' may carry a device-specific brute target as
+			 * "digest|/p" or "basic|/p" (from the fingerprinter);
+			 * a bare path stays plain Basic auth. */
+			if (path.rfind("digest|", 0)==0)
+				*auth=http_digestauth(fd, ip, srvport,
+					path.substr(7), login, pass);
+			else {
+				std::string bp=(path.rfind("basic|", 0)==0)?
+					path.substr(6):path;
+				*auth=http_basicauth(fd, ip.c_str(), bp.c_str(),
+					login.c_str(), pass.c_str());
+			}
 			return;
 		case RTSP_BRUTEFORCE:
 			*auth=rtsp_qprc_auth(fd, ip, srvport, login, pass,

@@ -111,5 +111,7 @@ bool hik_chk_0(NESCATARGET *target, int port,
 	long long timeout, NESCADATA *ncsdata);
 bool http_m_htmlredirtitle(NESCATARGET *target, int port,
 	long long timeout, NESCADATA *ncsdata);
+bool http_fp_m(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata);
 
 #endif
