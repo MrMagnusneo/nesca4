@@ -31,6 +31,7 @@
 #include "include/nescawf.h"
 #include "include/nescasmtp.h"
 #include "include/nescahik.h"
+#include "include/nescartsp.h"
 #include "include/nescafp.h"
 #include "include/nescaneg.h"
 #include "libncsnet/ncsnet/socket.h"
@@ -531,6 +532,16 @@ bool http_fp_m(NESCATARGET *target, int port,
 		if (is_negative(body))
 			return false;
 		action=httpfp_match(body);
+		/* no known device, but the page demands auth -> generic
+		 * Basic/Digest brute at "/" (legacy nesca flag==2) */
+		if (action.empty()&&http_needs_auth(body)) {
+			std::string realm, nonce;
+			bool basic=false;
+			if (rtsp_parse_auth(body, realm, nonce, basic)&&!basic)
+				action="digest|/";
+			else
+				action="basic|/";
+		}
 	}
 	if (action.empty())
 		return false;

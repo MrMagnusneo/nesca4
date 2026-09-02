@@ -106,6 +106,19 @@ std::string httpfp_match(const std::string &body)
 	return "";
 }
 
+bool http_needs_auth(const std::string &response)
+{
+	std::string b=tolower_str(response);
+	if (b.find("401 unauthorized")!=std::string::npos)
+		return true;
+	if (b.find("401 authorization")!=std::string::npos)
+		return true;
+	if (b.find("www-authenticate")!=std::string::npos
+			&&b.find("401")!=std::string::npos)
+		return true;
+	return false;
+}
+
 bool http_digestauth(int fd, const std::string &ip, u16 port,
 	const std::string &path, const std::string &login,
 	const std::string &pass)

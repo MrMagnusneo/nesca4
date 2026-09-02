@@ -42,6 +42,11 @@
  * matched action string, or "" if nothing matched. */
 std::string httpfp_match(const std::string &body);
 
+/* True if the response is an HTTP auth challenge (401 / WWW-Authenticate),
+ * ported from legacy nesca Utils::isDigest — such pages get a generic
+ * Basic/Digest brute at the root path. */
+bool http_needs_auth(const std::string &response);
+
 /* One HTTP Digest auth attempt for login/pass at path, on an already
  * connected fd. Reuses the RFC2617 helpers from nescartsp. Never closes
  * fd. Returns true on HTTP 200. */

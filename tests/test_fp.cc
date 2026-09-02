@@ -30,6 +30,10 @@ static void test_match_digest(void)
 	assert(httpfp_match(body) == "digest|/PSIA/Custom/SelfExt/userCheck");
 }
 static void test_no_match(void){ assert(httpfp_match("just a normal page")==""); }
+static void test_needs_auth(void){
+	assert(http_needs_auth("HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm=\"x\"\r\n")==true);
+	assert(http_needs_auth("HTTP/1.1 200 OK\r\n")==false);
+}
 
 /* fake HTTP: 401 Digest challenge, 200 for correct digest of admin/pass */
 static u16 start_fake(void)
@@ -69,7 +73,7 @@ static void test_digestauth(void)
 
 int main(void)
 {
-	test_match_vendor(); test_match_path(); test_match_digest(); test_no_match();
+	test_match_vendor(); test_match_path(); test_match_digest(); test_no_match(); test_needs_auth();
 	test_digestauth();
 	printf("test_fp: all passed\n");
 	return 0;
