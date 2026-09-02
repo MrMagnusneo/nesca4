@@ -32,6 +32,7 @@
 #include "include/nescasmtp.h"
 #include "include/nescahik.h"
 #include "include/nescafp.h"
+#include "include/nescaneg.h"
 #include "libncsnet/ncsnet/socket.h"
 #include "libncsnet/ncsnet/http.h"
 #include "libncsnet/ncsnet/ftp.h"
@@ -524,7 +525,13 @@ bool http_fp_m(NESCATARGET *target, int port,
 	if (n<=0)
 		return false;
 
-	action=httpfp_match(std::string((char*)buf, n));
+	{
+		std::string body((char*)buf, n);
+		/* drop junk/denied/parking pages before any brute (isNegative) */
+		if (is_negative(body))
+			return false;
+		action=httpfp_match(body);
+	}
 	if (action.empty())
 		return false;
 
