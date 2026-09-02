@@ -31,6 +31,7 @@
 #include "include/nescawf.h"
 #include "include/nescasmtp.h"
 #include "include/nescahik.h"
+#include "include/nescafp.h"
 #include "libncsnet/ncsnet/socket.h"
 #include "libncsnet/ncsnet/http.h"
 #include "libncsnet/ncsnet/ftp.h"
@@ -155,6 +156,7 @@ void NESCAPROCESSING::INIT(NESCADATA *ncsdata, int service)
 			NESCAPROCESSINGCORPUS http;
 			http.setcheck(http_chk_0);
 			http.setmethod(http_m_htmlredirtitle);
+			http.setmethod(http_fp_m);
 			this->methods.push_back(http);
 			return;
 		}
@@ -488,6 +490,55 @@ bool rtsp_chk_0(NESCATARGET *target, int port,
 	target->add_service(target->get_real_port(pos), S_RTSP, s, e);
 	target->set_bruteforce(S_RTSP, port, "");
 	return 1;
+}
+
+/*
+ * HTTP device fingerprint method (ported from legacy nesca finder.cpp):
+ * GET the landing page, match it against the 48-entry device table, and
+ * register the matching bruteforce job (IPC vendor, or HTTP Basic/Digest
+ * at a device-specific path).
+ */
+bool http_fp_m(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata)
+{
+	u8		buf[HTTP_BUFSZ];
+	ssize_t		n;
+	size_t		pos;
+	int		fd;
+	std::string	req, action;
+
+	___VERBOSE;
+	req="GET / HTTP/1.1\r\nHost: "+target->get_mainip()
+		+"\r\nConnection: close\r\n\r\n";
+
+	fd=sock_session(target->get_mainip().c_str(), port, timeout, NULL, 0);
+	if (fd<0)
+		return false;
+	if (sock_send(fd, req.data(), req.size())<=0) {
+		close(fd);
+		return false;
+	}
+	memset(buf, 0, sizeof(buf));
+	n=sock_recv(fd, buf, sizeof(buf)-1);
+	close(fd);
+	if (n<=0)
+		return false;
+
+	action=httpfp_match(std::string((char*)buf, n));
+	if (action.empty())
+		return false;
+
+	for (pos=0;pos<target->get_num_port();pos++)
+		if (target->get_port(pos).port==port)
+			break;
+	target->add_info_service(target->get_real_port(pos), S_HTTP,
+		action, "device");
+
+	if (action.rfind("IPC:", 0)==0)
+		target->set_bruteforce(S_IPC, port, action.substr(4));
+	else	/* "basic|/path" or "digest|/path" -> HTTP job carries prefix */
+		target->set_bruteforce(S_HTTP, port, action);
+	return true;
 }
 
 bool ssh_chk_0(NESCATARGET *target, int port,
