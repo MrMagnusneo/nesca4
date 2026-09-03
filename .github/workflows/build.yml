@@ -1,0 +1,65 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y build-essential autoconf libssh-dev qtbase5-dev
+      - name: Configure & build engine
+        run: ./configure && make -j"$(nproc)"
+      - name: Run tests
+        run: make test
+      - name: Build Qt GUI
+        run: cd gui && qmake && make -j"$(nproc)"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nesca4-linux
+          path: |
+            nesca4
+            gui/nesca4-gui
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            make
+      # M1: compile the Winsock socket layer + the pure application/brute
+      # objects. The full raw-packet engine is NOT built here yet
+      # (needs the Npcap port -- see windows/PORTING.md). This job is
+      # informational: it proves the TCP surface compiles natively.
+      - name: Compile Winsock shim
+        run: gcc -std=c11 -c windows/wsock.c -o wsock.o
+      - name: Compile application/brute objects (no libncsnet networking)
+        continue-on-error: true
+        run: |
+          for m in nescartsp nescaipc nescarvi nescawf nescasmtp nescafp nescaneg; do
+            echo "== $m =="
+            g++ -std=c++17 -D_WIN32_WINNT=0x0601 -Iinclude -Iwindows \
+              -c $m.cc -o $m.o || true
+          done
+      - name: Upload Windows objects
+        uses: actions/upload-artifact@v4
+        with:
+          name: nesca4-windows-objects
+          path: "*.o"
