@@ -1,27 +1,24 @@
-/* nesca4-gui — faithful nesca-3 style main window. */
+/* nesca4-gui — wraps the original nesca_3 UI, driving the nesca4 CLI. */
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QWidget>
+#include <QMainWindow>
 #include <QElapsedTimer>
 #include <QPoint>
 
-class QLineEdit;
-class QTextBrowser;
-class QLabel;
-class QPushButton;
+QT_BEGIN_NAMESPACE
+namespace Ui { class nesca_3Class; }
+QT_END_NAMESPACE
 class QProcess;
 class QTimer;
-class ActivityGraph;
 
-class MainWindow : public QWidget {
+class MainWindow : public QMainWindow {
 	Q_OBJECT
 public:
 	explicit MainWindow(QWidget *parent = nullptr);
 	~MainWindow() override;
 
 protected:
-	/* frameless drag */
 	void mousePressEvent(QMouseEvent *) override;
 	void mouseMoveEvent(QMouseEvent *) override;
 
@@ -31,45 +28,24 @@ private slots:
 	void onReadyStderr();
 	void onFinished(int code);
 	void onSecTick();
-	void onClearLog();
 
 private:
-	QLabel   *L(const QString &t, int x, int y, int w, int h,
-		 const char *color, int pt, bool bold=false, int align=0);
-	QLineEdit*E(const QString &t, int x, int y, int w, int h);
-	QPushButton *B(const QString &t, int x, int y, int w, int h);
-
 	QStringList buildArgs(QString &reportPath) const;
+	QString servicesFromPorts(const QString &ports) const;
 	void setRunning(bool running);
 	void ingest(const QString &chunk);
 	QString colorizeLine(const QString &line);
 	void resetStats();
 
-	/* title / window */
-	QPoint    dragPos;
-
-	/* inputs */
-	QLineEdit *ipLine, *portsLine, *threadsLine, *timeoutLine, *servicesLine, *engineLine;
-	QPushButton *startBtn;
-
-	/* stats */
-	QLabel *vCurrent, *vThreads, *vBrute, *vTargets, *vIps, *vSaved, *vOffline;
-	/* category counters */
-	QLabel *cCameras, *cBads, *cBasic, *cOther, *cOverloads, *cLowloads, *cSSH, *cAlive;
-	/* status */
-	QLabel *statusVal, *activityVal;
-	ActivityGraph *graph;
-
-	/* log */
-	QTextBrowser *log;
-
-	/* runtime */
+	Ui::nesca_3Class *ui;
 	QProcess *proc;
-	QString reportPath, lineBuf;
+	QString   engineBin, reportPath, lineBuf;
 	QElapsedTimer clock;
-	QTimer *sec;
+	QTimer   *sec;
+	QPoint    dragPos;
 	long long bytesTotal;
-	int foundTargets, bruteHits, offlineCount, savedCount;
+	int foundTargets, bruteHits, offlineCount;
+	int camCount, sshCount;
 	double progressPct;
 };
 

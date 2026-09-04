@@ -16,3 +16,5 @@
 /gui/moc_*
 /gui/.qmake.stash
 /gui/qrc_*
+/gui/ui_*.h
+/gui/qrc_*.cpp

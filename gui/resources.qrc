@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/">
-    <file>fonts/Eurostile.ttf</file>
-    <file>fonts/small_font.ttf</file>
-  </qresource>
-</RCC>
