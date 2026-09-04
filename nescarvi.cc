@@ -27,6 +27,7 @@
 #include <cstring>
 
 #include "libncsnet/ncsnet/socket.h"
+#include "include/nescautil.h"
 
 static const unsigned char RVI_START[8]=
 	{0xa0,0x00,0x00,0x60,0x00,0x00,0x00,0x00};
@@ -57,11 +58,8 @@ bool rvi_qprc_auth(int fd, const std::string &login, const std::string &pass)
 		return false;
 
 	pkt=rvi_build_login(login, pass);
-	/* binary frame: must send raw (sock_probe's %s stops at first nul) */
-	if (sock_send(fd, pkt.data(), pkt.size())<=0)
-		return false;
-	memset(buf, 0, sizeof buf);
-	n=sock_recv(fd, buf, sizeof buf);
+	/* binary frame: send raw + recv (sock_probe's %s stops at first nul) */
+	n=ncs_send_recv(fd, pkt.data(), pkt.size(), buf, sizeof buf);
 	if (n<10)
 		return false;
 	return buf[9]==0x08;

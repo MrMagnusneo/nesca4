@@ -24,6 +24,8 @@
 
 #include "include/nescautil.h"
 #include <cctype>
+#include <cstring>
+#include "libncsnet/ncsnet/socket.h"
 
 std::string ncs_tolower(const std::string &s)
 {
@@ -31,4 +33,12 @@ std::string ncs_tolower(const std::string &s)
 	for (char &c:r)
 		c=(char)std::tolower((unsigned char)c);
 	return r;
+}
+
+ssize_t ncs_send_recv(int fd, const void *data, size_t dlen, void *buf, size_t blen)
+{
+	if (sock_send(fd, data, dlen)<=0)
+		return -1;
+	memset(buf, 0, blen);
+	return sock_recv(fd, buf, blen);
 }

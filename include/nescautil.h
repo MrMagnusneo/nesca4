@@ -29,7 +29,15 @@
 
 /* Shared small helpers for the nesca4 service/brute modules. */
 
+#include <cstddef>
+#include "../libncsnet/ncsnet/sys/types.h"
+
 /* ASCII-lowercased copy of s. */
 std::string ncs_tolower(const std::string &s);
+
+/* Send dlen raw bytes on fd, then read one response into buf (blen).
+ * Returns bytes read, or -1 on send/recv failure. Used for the binary
+ * request/response probes (RVI, Hikvision handshakes). */
+ssize_t ncs_send_recv(int fd, const void *data, size_t dlen, void *buf, size_t blen);
 
 #endif
