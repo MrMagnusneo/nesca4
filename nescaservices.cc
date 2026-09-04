@@ -34,6 +34,7 @@
 #include "include/nescartsp.h"
 #include "include/nescafp.h"
 #include "include/nescaneg.h"
+#include "include/nescatelnet.h"
 #include "libncsnet/ncsnet/socket.h"
 #include "libncsnet/ncsnet/http.h"
 #include "libncsnet/ncsnet/ftp.h"
@@ -209,6 +210,12 @@ void NESCAPROCESSING::INIT(NESCADATA *ncsdata, int service)
 			NESCAPROCESSINGCORPUS hik;
 			hik.setcheck(hik_chk_0);
 			this->methods.push_back(hik);
+			return;
+		}
+		case S_TELNET: {
+			NESCAPROCESSINGCORPUS telnet;
+			telnet.setcheck(telnet_chk_0);
+			this->methods.push_back(telnet);
 			return;
 		}
 	}
@@ -795,6 +802,40 @@ bool hik_chk_0(NESCATARGET *target, int port,
 	 * has no SDK login path, so it stays detection-only. */
 	if (ivms)
 		target->set_bruteforce(S_HIK, port, "ivms");
+	return 1;
+}
+
+bool telnet_chk_0(NESCATARGET *target, int port,
+	long long timeout, NESCADATA *ncsdata)
+{
+	struct timeval	s, e;
+	u8		receive[BUFSIZ];
+	size_t		pos;
+	std::string	banner;
+	int		ret;
+
+	___VERBOSE;
+	gettimeofday(&s, NULL);
+	ret=sock_session(target->get_mainip().c_str(), port,
+		timeout, receive, sizeof(receive));
+	gettimeofday(&e, NULL);
+	if (ret<0)
+		return 0;
+	close(ret);			/* banner read; fd not reused */
+	banner=std::string((char*)receive, (receive[0])?strlen((char*)receive):0);
+	/* telnet: option negotiation starts with IAC (0xFF), or a login prompt */
+	if ((u8)receive[0]!=255
+		&& banner.find("login")==std::string::npos
+		&& banner.find("Login")==std::string::npos
+		&& banner.find("sername")==std::string::npos
+		&& banner.find("assword")==std::string::npos)
+		return 0;
+
+	for (pos=0;pos<target->get_num_port();pos++)
+		if (target->get_port(pos).port==port)
+			break;
+	target->add_service(target->get_real_port(pos), S_TELNET, s, e);
+	target->set_bruteforce(S_TELNET, port, "");
 	return 1;
 }
 #undef ___VERBOSE

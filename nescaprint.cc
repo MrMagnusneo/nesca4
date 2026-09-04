@@ -23,6 +23,7 @@
 */
 
 #include "include/nescaprint.h"
+#include "include/nescasvc.h"
 #include "include/nescadata.h"
 #include "include/nescaengine.h"
 #include "libncsnet/ncsnet/ip4addr.h"
@@ -325,16 +326,7 @@ void NESCAPRINT::nescatarget(NESCATARGET *target, bool onlyok, bool cut)
 					continue;
 				for (const auto&s:tmp.info) {
 					std::cout<<"  "<<
-						((tmp.service==S_FTP)?"ftp":
-						 (tmp.service==S_HTTP)?"http":
-						 (tmp.service==S_RTSP)?"rtsp":
-						 (tmp.service==S_SSH)?"ssh":
-						 (tmp.service==S_RVI)?"rvi":
-						 (tmp.service==S_IPC)?"ipc":
-						 (tmp.service==S_WF)?"webform":
-						 (tmp.service==S_SMTP)?"smtp":
-						 (tmp.service==S_HIK)?"hikvision":
-						 "???")
+						ncs_svc_name(tmp.service)
 						<< "(" << s.type << ")"
 						<< "  ";
 					std::cout << cutinfo(s.info, cut);
@@ -851,8 +843,7 @@ skip:
 				for (const auto&s:tmp.info) {
 					block="";
 					block+=
-					std::string(((tmp.service==S_FTP)?"ftp":(tmp.service==S_HTTP)?
-						"http": "???")) + "(" + s.type + ")" + "	";
+					std::string(std::string(ncs_svc_name(tmp.service))) + "(" + s.type + ")" + "	";
 					nh_addtobuf("	"+block+"<span class=\"info\">"+
 						cutinfo(s.info, cut)+"</span>;");
 				}
