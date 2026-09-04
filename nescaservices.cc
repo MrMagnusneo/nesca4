@@ -44,6 +44,7 @@
 #include <sys/select.h>
 #include <vector>
 #include <string.h>
+#include <unistd.h>
 
 #define ___VERBOSE							\
 	if (ncsdata->opts.check_stats_flag())				\
@@ -437,6 +438,7 @@ bool ftp_chk_0(NESCATARGET *target, int port,
 	gettimeofday(&e, NULL);
 	if (ret<0)
 		return res;
+	close(ret);			/* banner already read; fd not reused */
 	tmp=std::string((char*)receive);
 	tmp=clearbuf(tmp);
 	res=1;
@@ -575,6 +577,7 @@ bool ssh_chk_0(NESCATARGET *target, int port,
 	gettimeofday(&e, NULL);
 	if (ret<0)
 		return 0;
+	close(ret);			/* banner already read; fd not reused */
 	banner=std::string((char*)receive);
 	if (find_word(banner.c_str(), "SSH-")!=0)
 		return 0;
@@ -732,6 +735,7 @@ bool smtp_chk_0(NESCATARGET *target, int port,
 	gettimeofday(&e, NULL);
 	if (ret<0)
 		return 0;
+	close(ret);			/* banner already read; fd not reused */
 	banner=std::string((char*)receive);
 	if (atoi(banner.c_str())!=220)	/* SMTP greeting */
 		return 0;
