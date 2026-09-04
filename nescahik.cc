@@ -27,6 +27,7 @@
 #include <cstring>
 
 #include "libncsnet/ncsnet/socket.h"
+#include "include/nescautil.h"
 
 static const unsigned char headerIVMS[32]={
 	0x00,0x00,0x00,0x20,0x63,0x00,0x00,0x00,
@@ -48,10 +49,7 @@ static const unsigned char headerSAFARI[128]={
 static bool hik_probe(int fd, const unsigned char *pkt, size_t pktlen,
 	unsigned char *out, size_t outlen)
 {
-	if (sock_send(fd, pkt, pktlen)<=0)
-		return false;
-	memset(out, 0, outlen);
-	return sock_recv(fd, out, outlen)>0;
+	return ncs_send_recv(fd, pkt, pktlen, out, outlen)>0;
 }
 
 bool hik_ivms_detect(int fd)
@@ -65,11 +63,7 @@ bool hik_ivms_detect(int fd)
 bool hik_safari_detect(int fd)
 {
 	unsigned char buf[64];
-	ssize_t n;
-	if (sock_send(fd, headerSAFARI, sizeof headerSAFARI)<=0)
-		return false;
-	memset(buf, 0, sizeof buf);
-	n=sock_recv(fd, buf, sizeof buf);
+	ssize_t n=ncs_send_recv(fd, headerSAFARI, sizeof headerSAFARI, buf, sizeof buf);
 	return n>0&&buf[0]!=0;
 }
 

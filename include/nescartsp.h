@@ -53,6 +53,11 @@ std::string rtsp_digest_response(const std::string &user,
 bool rtsp_parse_auth(const std::string &response, std::string &realm,
 	std::string &nonce, bool &basic);
 
+/* Full "Authorization: Digest ...\r\n" header line for method+uri. */
+std::string rtsp_digest_header(const std::string &user, const std::string &realm,
+	const std::string &pass, const std::string &method, const std::string &uri,
+	const std::string &nonce);
+
 /*
  * Attempt one RTSP DESCRIBE auth on an already-connected fd. Sends an
  * unauthenticated DESCRIBE first; on 200 OK returns true (open stream),

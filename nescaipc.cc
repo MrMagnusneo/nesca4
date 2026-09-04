@@ -23,6 +23,7 @@
 */
 
 #include "include/nescaipc.h"
+#include "include/nescautil.h"
 
 #include <cstdio>
 #include <cstring>
@@ -169,19 +170,12 @@ static const std::vector<std::pair<std::string, std::string>> IPC_SIG = {
 	{"jassun",	"JASSUN"},	{"aviosys",	"AVIOSYS"},
 };
 
-static std::string tolower_str(const std::string &s)
-{
-	std::string r=s;
-	for (auto &c:r)
-		c=(char)tolower((unsigned char)c);
-	return r;
-}
 
 std::string ipc_detect_spec(const std::string &response)
 {
-	std::string low=tolower_str(response);
+	std::string low=ncs_tolower(response);
 	for (const auto &sig:IPC_SIG)
-		if (low.find(tolower_str(sig.first))!=std::string::npos)
+		if (low.find(ncs_tolower(sig.first))!=std::string::npos)
 			return sig.second;
 	return "";
 }

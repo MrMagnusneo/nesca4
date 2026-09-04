@@ -181,7 +181,7 @@ bool wf_qprc_auth(int fd, const std::string &ip, u16 port,
 			+"\r\nConnection: close\r\n\r\n";
 	} else {
 		body=f.userfield+"="+login+"&"+f.passfield+"="+pass;
-		http="POST "+f.action+" HTTP/1.1\r\nHost: "+ip
+		http="POST "+f.action+" HTTP/1.1\r\nHost: "+ip+":"+std::to_string(port)
 			+"\r\nContent-Type: application/x-www-form-urlencoded\r\n"
 			"Content-Length: "+std::to_string(body.size())
 			+"\r\nConnection: close\r\n\r\n"+body;
