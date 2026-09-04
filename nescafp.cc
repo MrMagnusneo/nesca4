@@ -23,6 +23,7 @@
 */
 
 #include "include/nescafp.h"
+#include "include/nescautil.h"
 #include "include/nescartsp.h"
 
 #include <cstring>
@@ -85,17 +86,10 @@ static const std::vector<NESCAFP> FPTABLE = {
 	{ {"netsuveillancewebcookie", "resizel"}, "IPC:XMSECU" },
 };
 
-static std::string tolower_str(const std::string &s)
-{
-	std::string r=s;
-	std::transform(r.begin(), r.end(), r.begin(),
-		[](unsigned char c){ return std::tolower(c); });
-	return r;
-}
 
 std::string httpfp_match(const std::string &body)
 {
-	std::string low=tolower_str(body);
+	std::string low=ncs_tolower(body);
 	for (const auto &fp:FPTABLE) {
 		bool all=true;
 		for (const auto &sig:fp.sigs)
@@ -108,7 +102,7 @@ std::string httpfp_match(const std::string &body)
 
 bool http_needs_auth(const std::string &response)
 {
-	std::string b=tolower_str(response);
+	std::string b=ncs_tolower(response);
 	if (b.find("401 unauthorized")!=std::string::npos)
 		return true;
 	if (b.find("401 authorization")!=std::string::npos)
