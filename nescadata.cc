@@ -23,6 +23,7 @@
 */
 
 #include "include/nescadata.h"
+#include "include/nescasvc.h"
 #include "include/nescaengine.h"
 #include "include/nescaprint.h"
 #include "libncsnet/ncsnet/cidr.h"
@@ -1635,44 +1636,14 @@ void NESCAOPTS::set_s_param(const std::string &s_param)
 	while (std::getline(ss, token, SPLITOPT_DEL)) {
 
 		if (!isdigit(token[0])) {
-			rem=0;
-			if (!find_word(token.c_str(), "http")) {
-				service=S_HTTP;
-				rem=(std::string("http").length());
+			int mlen=0, id=ncs_svc_id_prefix(token.c_str(), &mlen);
+			if (id>=0) {
+				service=id;
+				rem=(size_t)mlen;
 			}
-			if (!find_word(token.c_str(), "ftp")) {
-				service=S_FTP;
-				rem=(std::string("ftp").length());
-			}
-			if (!find_word(token.c_str(), "rtsp")) {
-				service=S_RTSP;
-				rem=(std::string("rtsp").length());
-			}
-			if (!find_word(token.c_str(), "ssh")) {
-				service=S_SSH;
-				rem=(std::string("ssh").length());
-			}
-			if (!find_word(token.c_str(), "rvi")) {
-				service=S_RVI;
-				rem=(std::string("rvi").length());
-			}
-			if (!find_word(token.c_str(), "ipc")) {
-				service=S_IPC;
-				rem=(std::string("ipc").length());
-			}
-			if (!find_word(token.c_str(), "wf")) {
-				service=S_WF;
-				rem=(std::string("wf").length());
-			}
-			if (!find_word(token.c_str(), "smtp")) {
-				service=S_SMTP;
-				rem=(std::string("smtp").length());
-			}
-			if (!find_word(token.c_str(), "hik")) {
-				service=S_HIK;
-				rem=(std::string("hik").length());
-			}
-			rem++;
+			else
+				rem=0;
+			rem++;			/* skip the ':' separator */
 			token.erase(0,rem);
 		}
 
