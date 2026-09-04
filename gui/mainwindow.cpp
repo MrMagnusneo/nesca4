@@ -1,211 +1,191 @@
-/* nesca4-gui — nesca-style main window implementation. */
+/* nesca4-gui — faithful nesca-3 style main window. */
 #include "mainwindow.h"
 #include "activitygraph.h"
 
-#include <QWidget>
 #include <QLineEdit>
-#include <QTextEdit>
 #include <QTextBrowser>
-#include <QPushButton>
-#include <QComboBox>
-#include <QSpinBox>
 #include <QLabel>
-#include <QProgressBar>
+#include <QPushButton>
 #include <QProcess>
 #include <QTimer>
-#include <QTabWidget>
-#include <QGroupBox>
-#include <QFormLayout>
-#include <QHBoxLayout>
-#include <QVBoxLayout>
-#include <QGridLayout>
-#include <QSplitter>
-#include <QFileDialog>
-#include <QFileInfo>
+#include <QFont>
+#include <QMouseEvent>
 #include <QFile>
 #include <QDir>
+#include <QFileInfo>
 #include <QDateTime>
 #include <QScrollBar>
 #include <QRegularExpression>
-#include <QStatusBar>
 #include <QTextCursor>
-#include <QFont>
+#include <QApplication>
 
-/* ---- nesca dark palette ---- */
-static const char *C_BG     = "#0b0d0b";
-static const char *C_GRAY   = "#7f8f7f";
-static const char *C_GREEN  = "#5fd07a";
-static const char *C_GOLD   = "#d4a017";
-static const char *C_HIT    = "#ffd24a";
-static const char *C_LINK   = "#3aa0ff";
-static const char *C_PORTS  = "#4a90d9";
-static const char *C_RED    = "#e0605a";
-static const char *C_HEAD   = "#b6c2b6";
+/* ---- nesca palette ---- */
+#define BG      "#1a1a1a"
+#define TXT     "#d8d8d8"
+#define DIM     "#6a6a6a"
+#define GREEN   "#00b304"
+#define GREENH  "#1efd00"
+#define ORANGE  "#faaa3c"
+#define GOLD    "#d1a000"
+#define LINK    "#3aa0ff"
+#define REDc    "#d84a3c"
+#define PORTSc  "#5a9bd4"
 
-static QString nescaStyle()
+static QFont euro(int pt, bool bold=false)
 {
-	return QString(
-	"QMainWindow, QWidget { background:%1; color:%2;"
-	"  font-family:'DejaVu Sans Mono','Consolas',monospace; font-size:12px; }"
-	"QGroupBox { border:1px solid #35452f; margin-top:8px; }"
-	"QGroupBox::title { subcontrol-origin:margin; left:8px; color:%6; }"
-	"QLineEdit,QComboBox,QSpinBox { background:#060806; color:#b6d6b6;"
-	"  border:1px solid #2a3a26; padding:3px;"
-	"  selection-background-color:#2e6f52; }"
-	"QLineEdit:focus { border:1px solid #4fd07a; }"
-	"QPushButton { background:#16211500; background-color:#152015;"
-	"  color:#c6e0c6; border:1px solid #3a5a34; padding:6px 18px; font-weight:bold; }"
-	"QPushButton:hover { background-color:#1c2a1c; }"
-	"QTextEdit,QTextBrowser { background:#060806; border:1px solid #2a3a26; }"
-	"QTabBar::tab { background:#0e120e; color:#7f8f7f; padding:5px 12px;"
-	"  border:1px solid #22301f; }"
-	"QTabBar::tab:selected { color:%3; border-bottom:2px solid #4fd07a; }"
-	"QProgressBar { background:#060806; border:1px solid #2a3a26; text-align:center;"
-	"  color:#9fb79f; }"
-	"QProgressBar::chunk { background-color:#2e7f4f; }"
-	"QScrollBar:vertical { background:#0b0d0b; width:12px; }"
-	"QScrollBar::handle:vertical { background:#2a3a26; min-height:20px; }"
-	).arg(C_BG).arg(C_GRAY).arg(C_GREEN).arg("").arg("").arg(C_HEAD);
-}
-
-static QLabel *statLabel(const QString &v, const char *color)
-{
-	QLabel *l = new QLabel(v);
-	l->setStyleSheet(QString("color:%1; font-weight:bold;").arg(color));
-	return l;
+	QFont f("Eurostile");
+	f.setPointSize(pt);
+	f.setBold(bold);
+	return f;
 }
 
 MainWindow::MainWindow(QWidget *parent)
-	: QMainWindow(parent), proc(nullptr), bytesTotal(0),
-	  foundTargets(0), bruteHits(0), progressPct(0.0)
+	: QWidget(parent), proc(nullptr), bytesTotal(0),
+	  foundTargets(0), bruteHits(0), offlineCount(0), savedCount(0),
+	  progressPct(0)
 {
-	setWindowTitle("NESCA4 :: Revealing the Unseen Horizon");
-	resize(1080, 760);
-	setStyleSheet(nescaStyle());
+	setWindowFlags(Qt::FramelessWindowHint);
+	setFixedSize(500, 800);
+	setStyleSheet(
+		"QWidget{background-color:" BG ";color:" TXT ";}"
+		"QLineEdit{background-color:#0e0e0e;color:#d8d8d8;border:1px solid #4a4a4a;"
+		"  selection-background-color:" ORANGE ";}"
+		"QLineEdit:focus{border:1px solid " ORANGE ";}"
+		"QPushButton{background-color:qlineargradient(x1:1,y1:0,x2:1,y2:1,"
+		"  stop:0.68 rgba(0,0,0,250),stop:1 rgba(255,255,255,120));"
+		"  color:" GREEN ";border:1px solid #4a4a4a;}"
+		"QPushButton:hover{color:" GREENH ";}"
+		"QTextBrowser{background-color:#0a0a0a;color:#d8d8d8;border:1px solid #4a4a4a;}"
+		"QScrollBar:vertical{background:#1a1a1a;width:12px;border:1px solid #3a3a3a;}"
+		"QScrollBar::handle:vertical{background:#3a3a3a;}"
+	);
 
-	/* ---- title ---- */
-	QLabel *title = new QLabel("N E S C A 4  ::  Revealing the Unseen Horizon");
-	title->setAlignment(Qt::AlignCenter);
-	title->setStyleSheet(QString("color:%1; font-size:15px; font-weight:bold;"
-		" letter-spacing:2px; padding:6px;").arg(C_HEAD));
+	/* ===== title bar ===== */
+	L("NESCA 4  ::  Revealing the Unseen Horizon", 60, 10, 380, 20,
+		TXT, 11, true, 1);
+	QPushButton *mn=B("_", 452, 8, 20, 18); connect(mn,&QPushButton::clicked,this,&QWidget::showMinimized);
+	QPushButton *cl=B("X", 474, 8, 20, 18); connect(cl,&QPushButton::clicked,qApp,&QApplication::quit);
+	{ QLabel *g=L("▓▓▓", 470, 0, 30, 8, REDc, 6); g->setStyleSheet("color:" REDc ";background:transparent;"); }
 
-	/* ---- inputs ---- */
-	QGroupBox *inBox = new QGroupBox;
-	QGridLayout *g = new QGridLayout(inBox);
-	binEdit = new QLineEdit("./nesca4");
-	QPushButton *browse = new QPushButton("...");
-	browse->setFixedWidth(32);
-	targetEdit = new QLineEdit; targetEdit->setPlaceholderText("IP RANGE  e.g. 62.16.0.0/24  or  example.com");
-	portsEdit = new QLineEdit("80,81,88,8080,8888,21,554,8000,37777");
-	servicesEdit = new QLineEdit("http:80,ftp:21,rtsp:554,ssh:22,rvi:37777,hik:8000");
-	scanMethod = new QComboBox;
-	scanMethod->addItems({"-syn","-ack","-window","-maimon","-xmas","-fin","-null","(default)"});
-	threadsSpin = new QSpinBox; threadsSpin->setRange(1,10000); threadsSpin->setValue(200);
-	timeoutSpin = new QSpinBox; timeoutSpin->setRange(1,60); timeoutSpin->setValue(3);
-	startBtn = new QPushButton("START");
+	/* ===== tab row ===== */
+	const char *tabs[]={"IP Scan","DNS Scan","Import","NS-Track"};
+	for (int i=0;i<4;i++){ QPushButton*t=B(tabs[i], 10+i*72, 34, 70, 18);
+		if(i==0) t->setStyleSheet("color:" ORANGE ";border:1px solid " ORANGE ";background:#1a1a1a;"); }
+	L(":NS-IRC", 400, 36, 44, 14, DIM, 8, false, 2);
+	L(":Dataflow", 446, 36, 48, 14, DIM, 8, false, 2);
 
-	g->addWidget(new QLabel("engine"), 0,0);
-	{ QHBoxLayout *r=new QHBoxLayout; r->addWidget(binEdit); r->addWidget(browse); g->addLayout(r,0,1,1,3); }
-	g->addWidget(new QLabel("IP RANGE"), 1,0); g->addWidget(targetEdit,1,1,1,3);
-	g->addWidget(new QLabel("PORTS"),    2,0); g->addWidget(portsEdit,2,1,1,3);
-	g->addWidget(new QLabel("SERVICES"), 3,0); g->addWidget(servicesEdit,3,1,1,3);
-	g->addWidget(new QLabel("THREADS"),  4,0); g->addWidget(threadsSpin,4,1);
-	g->addWidget(new QLabel("TIMEOUT"),  4,2); g->addWidget(timeoutSpin,4,3);
-	g->addWidget(new QLabel("METHOD"),   5,0); g->addWidget(scanMethod,5,1);
-	g->addWidget(startBtn,5,3);
-
-	/* ---- stats column ---- */
-	QGroupBox *stBox = new QGroupBox("scan");
-	QFormLayout *sf = new QFormLayout(stBox);
-	stCurrent = statLabel("--", C_GREEN);
-	stThreads = statLabel("0", C_HEAD);
-	stTargets = statLabel("0", C_GOLD);
-	stIps     = statLabel("0/s", C_HEAD);
-	stFound   = statLabel("0 / 0", C_HIT);
-	stElapsed = statLabel("00:00", C_HEAD);
-	auto cap=[](const char*t){ QLabel*l=new QLabel(t); l->setStyleSheet("color:#6a7a6a;"); return l; };
-	sf->addRow(cap("Current IP:"), stCurrent);
-	sf->addRow(cap("Threads:"),    stThreads);
-	sf->addRow(cap("Targets:"),    stTargets);
-	sf->addRow(cap("IP/s:"),       stIps);
-	sf->addRow(cap("Found/Brute:"),stFound);
-	sf->addRow(cap("Elapsed:"),    stElapsed);
-
-	graph = new ActivityGraph;
-
-	QWidget *leftCol = new QWidget;
-	QVBoxLayout *lv = new QVBoxLayout(leftCol);
-	lv->setContentsMargins(0,0,0,0);
-	lv->addWidget(stBox);
-	lv->addWidget(graph, 1);
-
-	/* ---- output tabs ---- */
-	log = new QTextEdit; log->setReadOnly(true);
-	QFont mono("DejaVu Sans Mono"); mono.setStyleHint(QFont::Monospace); mono.setPointSize(10);
-	log->setFont(mono);
-	report = new QTextBrowser;
-	QTabWidget *tabs = new QTabWidget;
-	tabs->addTab(log, "Dataflow");
-	tabs->addTab(report, "Report");
-
-	QSplitter *split = new QSplitter(Qt::Horizontal);
-	split->addWidget(leftCol);
-	split->addWidget(tabs);
-	split->setStretchFactor(0,0);
-	split->setStretchFactor(1,1);
-	split->setSizes({260, 820});
-
-	/* ---- assemble ---- */
-	QWidget *central = new QWidget;
-	QVBoxLayout *root = new QVBoxLayout(central);
-	root->addWidget(title);
-	root->addWidget(inBox);
-	root->addWidget(split, 1);
-	setCentralWidget(central);
-
-	progress = new QProgressBar; progress->setRange(0,100); progress->setValue(0);
-	progress->setFixedWidth(220); progress->setTextVisible(true);
-	statusLabel = new QLabel("idle");
-	activityLabel = new QLabel("Activity: 0b");
-	statusBar()->addWidget(statusLabel, 1);
-	statusBar()->addWidget(activityLabel);
-	statusBar()->addPermanentWidget(progress);
-
-	sec = new QTimer(this); sec->setInterval(1000);
-	connect(sec, &QTimer::timeout, this, &MainWindow::onSecTick);
-	connect(browse, &QPushButton::clicked, this, &MainWindow::onBrowseBin);
+	/* ===== inputs ===== */
+	L("IP RANGE", 24, 74, 80, 20, TXT, 9);      ipLine=E("", 110, 72, 320, 22);
+	ipLine->setPlaceholderText("62.16.0.0/24");
+	L("PORTS", 24, 100, 80, 20, TXT, 9);        portsLine=E("80,81,88,8080,8888,21,554,8000,37777", 110, 98, 320, 22);
+	L("SERVICES", 24, 126, 80, 20, TXT, 9);     servicesLine=E("http:80,ftp:21,rtsp:554,ssh:22,hik:8000", 110, 124, 320, 22);
+	L("THREADS", 24, 152, 80, 20, TXT, 9);      threadsLine=E("200", 110, 150, 60, 22);
+	L("TIMEOUT", 210, 152, 70, 20, TXT, 9);     timeoutLine=E("3", 300, 150, 60, 22);
+	L("ENGINE", 24, 178, 80, 20, DIM, 8);       engineLine=E("./nesca4", 110, 176, 320, 22);
+	startBtn=B("Start", 205, 206, 90, 24);
 	connect(startBtn, &QPushButton::clicked, this, &MainWindow::onStartStop);
 
-	appendHtml(QString("<span style='color:%1'>[*] nesca4-gui ready. "
-		"Enter a target and press START.</span>").arg(C_GRAY));
+	/* separator */
+	{ QLabel*s=new QLabel(this); s->setGeometry(14,240,472,1); s->setStyleSheet("background:#4a4a4a;"); }
+
+	/* ===== stats (left) ===== */
+	int sy=258, dy=19;
+	L("Current IP:",   24, sy+0*dy, 90, 16, DIM, 9);   vCurrent=L("--",       118, sy+0*dy, 130, 16, GREENH, 9, true);
+	L("Threads:",      24, sy+1*dy, 90, 16, DIM, 9);   vThreads=L("0/0",      118, sy+1*dy, 130, 16, TXT, 9, true);
+	L("Brute threads:",24, sy+2*dy, 90, 16, DIM, 9);   vBrute  =L("0",        118, sy+2*dy, 130, 16, TXT, 9, true);
+	L("Targets:",      24, sy+3*dy, 90, 16, DIM, 9);   vTargets=L("0 [0.0%]", 118, sy+3*dy, 130, 16, GOLD, 9, true);
+	L("IP/s:",         24, sy+4*dy, 90, 16, DIM, 9);   vIps    =L("0/s",      118, sy+4*dy, 130, 16, TXT, 9, true);
+	L("Saved/Parsed:", 24, sy+5*dy, 90, 16, DIM, 9);   vSaved  =L("0/0",      118, sy+5*dy, 130, 16, GREENH, 9, true);
+	L("Offline:",      24, sy+6*dy, 90, 16, DIM, 9);   vOffline=L("0",        118, sy+6*dy, 130, 16, DIM, 9, true);
+
+	/* ===== oscilloscope (right) ===== */
+	const char *modes[]={":ME2 mode",":QoS mode",":Voice mode",":Pie stats"};
+	for (int i=0;i<4;i++) L(modes[i], 250+i*60, 250, 60, 12, i==0?ORANGE:DIM, 7, false, 1);
+	graph=new ActivityGraph(this); graph->setGeometry(250, 264, 236, 96);
+	{ QLabel*b=new QLabel(this); b->setGeometry(250,264,236,96);
+	  b->setStyleSheet("background:transparent;border:1px solid #4a4a4a;"); b->raise(); }
+
+	/* ===== category legend ===== */
+	struct{const char*n;const char*c;int col;int row;QLabel**v;}
+	cats[]={
+		{"Cameras",   REDc,   0,0,&cCameras},{"Bad req",  "#a04040",1,0,&cBads},
+		{"Basic Auth",LINK,   0,1,&cBasic},  {"Other",    "#3ad0d0",1,1,&cOther},
+		{"Overloads", GOLD,   0,2,&cOverloads},{"Lowloads","#d060a0",1,2,&cLowloads},
+		{"SSH",       "#e0e0e0",0,3,&cSSH},   {"Alive",   GREENH,  1,3,&cAlive},
+	};
+	int ly=372, ldy=15;
+	for (auto &c:cats){
+		int x=(c.col==0)?238:372;
+		QLabel*dot=new QLabel(this); dot->setGeometry(x, ly+c.row*ldy+3, 7,7);
+		dot->setStyleSheet(QString("background:%1;border:none;").arg(c.c));
+		*c.v=L(QString("%1: 0").arg(c.n), x+12, ly+c.row*ldy, 120, 13,
+			c.c, 8, false, 0);
+	}
+
+	/* ===== log ===== */
+	log=new QTextBrowser(this); log->setGeometry(18, 446, 464, 300);
+	log->setFont(euro(9));
+	QPushButton *clr=B("X", 466, 446, 16, 20);
+	clr->setStyleSheet("color:" REDc ";border:1px solid #4a4a4a;background:#1a1a1a;");
+	connect(clr, &QPushButton::clicked, this, &MainWindow::onClearLog);
+
+	/* ===== bottom status ===== */
+	L("Status:", 18, 756, 50, 16, DIM, 9);   statusVal=L("idle", 70, 756, 200, 16, TXT, 9);
+	L("Activity:",270, 756, 56, 16, DIM, 9); activityVal=L("0b", 330, 756, 150, 16, TXT, 9);
+
+	sec=new QTimer(this); sec->setInterval(1000);
+	connect(sec, &QTimer::timeout, this, &MainWindow::onSecTick);
+
+	log->setHtml(QString("<span style='color:" DIM "'>[*] nesca4-gui ready. "
+		"Enter a target and press Start.</span><br>"));
 }
 
 MainWindow::~MainWindow()
 {
-	if (proc && proc->state() != QProcess::NotRunning) {
-		proc->kill(); proc->waitForFinished(800);
-	}
+	if (proc && proc->state()!=QProcess::NotRunning){ proc->kill(); proc->waitForFinished(600); }
 }
 
-void MainWindow::onBrowseBin()
+/* ---- widget helpers ---- */
+QLabel *MainWindow::L(const QString &t,int x,int y,int w,int h,const char*color,int pt,bool bold,int align)
 {
-	QString f = QFileDialog::getOpenFileName(this, "Select nesca4 engine binary");
-	if (!f.isEmpty()) binEdit->setText(f);
+	QLabel *l=new QLabel(t,this); l->setGeometry(x,y,w,h);
+	l->setFont(euro(pt,bold));
+	l->setStyleSheet(QString("color:%1;background:transparent;").arg(color));
+	l->setAlignment(align==1?Qt::AlignCenter:align==2?Qt::AlignRight|Qt::AlignVCenter
+		:Qt::AlignLeft|Qt::AlignVCenter);
+	return l;
+}
+QLineEdit *MainWindow::E(const QString &t,int x,int y,int w,int h)
+{
+	QLineEdit *e=new QLineEdit(t,this); e->setGeometry(x,y,w,h); e->setFont(euro(9)); return e;
+}
+QPushButton *MainWindow::B(const QString &t,int x,int y,int w,int h)
+{
+	QPushButton *b=new QPushButton(t,this); b->setGeometry(x,y,w,h); b->setFont(euro(9)); return b;
 }
 
+/* ---- frameless drag ---- */
+void MainWindow::mousePressEvent(QMouseEvent *e)
+{
+	if (e->button()==Qt::LeftButton && e->pos().y()<32)
+		dragPos = e->globalPos() - frameGeometry().topLeft();
+}
+void MainWindow::mouseMoveEvent(QMouseEvent *e)
+{
+	if (e->buttons()&Qt::LeftButton && !dragPos.isNull() && e->pos().y()<600)
+		move(e->globalPos() - dragPos);
+}
+
+/* ---- engine ---- */
 QStringList MainWindow::buildArgs(QString &outReport) const
 {
 	QStringList a;
-	if (!targetEdit->text().trimmed().isEmpty())
-		a << targetEdit->text().trimmed().split(' ', Qt::SkipEmptyParts);
-	if (!portsEdit->text().trimmed().isEmpty())
-		a << "-p" << portsEdit->text().trimmed();
-	if (!servicesEdit->text().trimmed().isEmpty())
-		a << "-s" << servicesEdit->text().trimmed();
-	if (scanMethod->currentText().startsWith("-"))
-		a << scanMethod->currentText();
-	a << "-threads-brute" << QString::number(threadsSpin->value());
-	a << "-wait-scan" << QString("%1s").arg(timeoutSpin->value());
+	if (!ipLine->text().trimmed().isEmpty())
+		a << ipLine->text().trimmed().split(' ', Qt::SkipEmptyParts);
+	if (!portsLine->text().trimmed().isEmpty()) a << "-p" << portsLine->text().trimmed();
+	if (!servicesLine->text().trimmed().isEmpty()) a << "-s" << servicesLine->text().trimmed();
+	a << "-threads-brute" << threadsLine->text().trimmed();
+	a << "-wait-scan" << (timeoutLine->text().trimmed()+"s");
 	a << "-v";
 	outReport = QDir::temp().filePath("nesca4-report-"
 		+ QString::number(QDateTime::currentMSecsSinceEpoch()) + ".html");
@@ -215,173 +195,133 @@ QStringList MainWindow::buildArgs(QString &outReport) const
 
 void MainWindow::resetStats()
 {
-	bytesTotal = 0; foundTargets = 0; bruteHits = 0; progressPct = 0;
-	stCurrent->setText("--"); stThreads->setText(QString::number(threadsSpin->value()));
-	stTargets->setText("0"); stIps->setText("0/s"); stFound->setText("0 / 0");
-	stElapsed->setText("00:00");
-	progress->setValue(0); activityLabel->setText("Activity: 0b");
-	graph->reset();
+	bytesTotal=0; foundTargets=bruteHits=offlineCount=savedCount=0; progressPct=0;
+	vCurrent->setText("--"); vThreads->setText(threadsLine->text()+"/"+threadsLine->text());
+	vBrute->setText("0"); vTargets->setText("0 [0.0%]"); vIps->setText("0/s");
+	vSaved->setText("0/0"); vOffline->setText("0");
+	cCameras->setText("Cameras: 0"); cBasic->setText("Basic Auth: 0");
+	cSSH->setText("SSH: 0"); cAlive->setText("Alive: 0");
+	cBads->setText("Bad req: 0"); cOther->setText("Other: 0");
+	cOverloads->setText("Overloads: 0"); cLowloads->setText("Lowloads: 0");
+	activityVal->setText("0b"); graph->reset();
 }
 
 void MainWindow::setRunning(bool running)
 {
-	startBtn->setText(running ? "STOP" : "START");
+	startBtn->setText(running?"Stop":"Start");
 	startBtn->setStyleSheet(running
-		? "background-color:#3a1414; color:#ff8a8a; border:1px solid #6a2a2a; font-weight:bold;"
-		: "");
-	targetEdit->setEnabled(!running);
-	graph->setActive(running);
-	statusLabel->setText(running ? "scanning..." : "idle");
-	if (running) { clock.start(); sec->start(); } else sec->stop();
+		?"color:" REDc ";border:1px solid #6a2a2a;"
+		:"");
+	ipLine->setEnabled(!running); graph->setActive(running);
+	statusVal->setText(running?"Scanning...":"idle");
+	statusVal->setStyleSheet(QString("color:%1;background:transparent;").arg(running?GREENH:TXT));
+	if (running){ clock.start(); sec->start(); } else sec->stop();
 }
 
 void MainWindow::onStartStop()
 {
-	if (proc && proc->state() != QProcess::NotRunning) {
-		proc->terminate();
-		if (!proc->waitForFinished(1200)) proc->kill();
-		appendHtml(QString("<span style='color:%1'>[*] stopped.</span>").arg(C_GRAY));
+	if (proc && proc->state()!=QProcess::NotRunning){
+		proc->terminate(); if(!proc->waitForFinished(1000)) proc->kill();
 		return;
 	}
-	if (targetEdit->text().trimmed().isEmpty()) {
-		appendHtml(QString("<span style='color:%1'>[!] enter a target first.</span>").arg(C_RED));
-		return;
+	if (ipLine->text().trimmed().isEmpty()){
+		log->append("<span style='color:" REDc "'>[!] enter a target first.</span>"); return;
 	}
-	QString bin = binEdit->text().trimmed(); if (bin.isEmpty()) bin = "./nesca4";
+	QString bin=engineLine->text().trimmed(); if(bin.isEmpty()) bin="./nesca4";
 	reportPath.clear(); lineBuf.clear();
-	QStringList args = buildArgs(reportPath);
-
-	if (proc) { proc->deleteLater(); proc = nullptr; }
-	proc = new QProcess(this);
+	QStringList args=buildArgs(reportPath);
+	if (proc){ proc->deleteLater(); proc=nullptr; }
+	proc=new QProcess(this);
 	proc->setWorkingDirectory(QFileInfo(bin).absolutePath());
-	connect(proc, &QProcess::readyReadStandardOutput, this, &MainWindow::onReadyStdout);
-	connect(proc, &QProcess::readyReadStandardError, this, &MainWindow::onReadyStderr);
-	connect(proc, QOverload<int,QProcess::ExitStatus>::of(&QProcess::finished),
-		this, [this](int c, QProcess::ExitStatus){ onFinished(c); });
-
+	connect(proc,&QProcess::readyReadStandardOutput,this,&MainWindow::onReadyStdout);
+	connect(proc,&QProcess::readyReadStandardError,this,&MainWindow::onReadyStderr);
+	connect(proc,QOverload<int,QProcess::ExitStatus>::of(&QProcess::finished),
+		this,[this](int c,QProcess::ExitStatus){ onFinished(c); });
 	log->clear(); resetStats();
-	appendHtml(QString("<span style='color:%1'>[*] %2 %3</span>")
-		.arg(C_GRAY).arg(bin).arg(args.join(' ').toHtmlEscaped()));
+	log->append(QString("<span style='color:" DIM "'>[*] %1 %2</span>")
+		.arg(bin).arg(args.join(' ').toHtmlEscaped()));
 	setRunning(true);
-	proc->start(bin, args);
-	if (!proc->waitForStarted(3000)) {
-		appendHtml(QString("<span style='color:%1'>[!] failed to start: %2</span>")
-			.arg(C_RED).arg(proc->errorString()));
+	proc->start(bin,args);
+	if (!proc->waitForStarted(3000)){
+		log->append("<span style='color:" REDc "'>[!] failed to start engine.</span>");
 		setRunning(false);
 	}
 }
 
-void MainWindow::appendHtml(const QString &html)
-{
-	log->moveCursor(QTextCursor::End);
-	log->insertHtml(html + "<br>");
-	log->verticalScrollBar()->setValue(log->verticalScrollBar()->maximum());
-}
-
 QString MainWindow::colorizeLine(const QString &raw)
 {
-	QString line = raw; while (line.endsWith('\r')) line.chop(1);
-	QString esc = line.toHtmlEscaped();
-	const char *col = C_GRAY;
+	QString line=raw; while(line.endsWith('\r')) line.chop(1);
+	QString esc=line.toHtmlEscaped();
+	QString low=line.toLower();
+	const char *col=TXT;
 
-	QString low = line.toLower();
-	bool hit = low.contains("(passwd)") || low.contains(" pass:")
-		|| QRegularExpression("[^\\s]+:[^\\s]+@").match(line).hasMatch();
-
-	if (hit) {
-		bruteHits++; col = C_HIT;
-	} else if (line.startsWith("Report nesca4 for")) {
-		foundTargets++;
-		/* highlight the ip after 'for ' */
-		QRegularExpression re("Report nesca4 for (\\S+)");
-		auto m = re.match(line);
-		if (m.hasMatch()) {
-			QString ip = m.captured(1);
-			stCurrent->setText(ip);
-			esc = QString("Report nesca4 for <span style='color:%1;"
-				"text-decoration:underline'>%2</span>%3")
-				.arg(C_LINK).arg(ip.toHtmlEscaped())
-				.arg(line.mid(m.capturedEnd(1)).toHtmlEscaped());
-		}
-		col = C_GREEN;
-		return QString("<span style='color:%1'>%2</span>").arg(C_GREEN).arg(esc);
-	} else if (line.startsWith("  ports")) {
-		col = C_PORTS;
-	} else if (QRegularExpression("^  (http|ftp|rtsp|ssh|rvi|ipc|webform|smtp|hikvision|db)\\(")
-			.match(line).hasMatch()) {
-		col = C_GOLD;
-	} else if (low.contains("err")||low.contains("fail")||low.contains("unavailable")
-			||low.contains("could not")||low.contains("unable")) {
-		col = C_RED;
-	} else if (low.contains("running nesca4")||low.contains("up ips")
-			||low.contains("success")||low.startsWith("[ok]")||low.contains("scanning")) {
-		col = C_GREEN;
+	bool hit=low.contains("(passwd)")||low.contains(" pass:")
+		||QRegularExpression("\\S+:\\S+@").match(line).hasMatch();
+	if (hit){ bruteHits++; cBasic->setText(QString("Basic Auth: %1").arg(bruteHits)); col=GOLD; }
+	else if (line.startsWith("Report nesca4 for")){
+		foundTargets++; cAlive->setText(QString("Alive: %1").arg(foundTargets));
+		auto m=QRegularExpression("Report nesca4 for (\\S+)").match(line);
+		if (m.hasMatch()){ QString ip=m.captured(1); vCurrent->setText(ip);
+			esc=QString("Report nesca4 for <a style='color:" LINK ";text-decoration:underline'>%1</a>%2")
+				.arg(ip.toHtmlEscaped()).arg(line.mid(m.capturedEnd(1)).toHtmlEscaped()); }
+		return QString("<span style='color:" GREENH "'>%1</span>").arg(esc);
 	}
-	/* progress % */
-	QRegularExpression pr("(\\d+(?:\\.\\d+)?)% ?targets");
-	auto pm = pr.match(line);
-	if (pm.hasMatch()) progressPct = pm.captured(1).toDouble();
+	else if (line.startsWith("  ports")) col=PORTSc;
+	else if (low.contains("rtsp(")||low.contains("hikvision(")||low.contains("ipc(")||low.contains("rvi(")){
+		cCameras->setText(QString("Cameras: %1")
+			.arg(cCameras->text().section(' ',-1).toInt()+1)); col=GOLD;
+	}
+	else if (low.contains("ssh(")){ cSSH->setText(QString("SSH: %1")
+			.arg(cSSH->text().section(' ',-1).toInt()+1)); col=GOLD; }
+	else if (QRegularExpression("^  (http|ftp|webform|smtp|db)\\(").match(line).hasMatch()) col=GOLD;
+	else if (low.contains("err")||low.contains("fail")||low.contains("unavailable")
+		||low.contains("could not")||low.contains("unable")){ col=REDc; offlineCount++; }
+	else if (low.contains("running nesca4")||low.contains("up ips")||low.contains("success")) col=GREENH;
+
+	auto pm=QRegularExpression("(\\d+(?:\\.\\d+)?)% ?targets").match(line);
+	if (pm.hasMatch()) progressPct=pm.captured(1).toDouble();
 
 	return QString("<span style='color:%1'>%2</span>").arg(col).arg(esc);
 }
 
 void MainWindow::ingest(const QString &chunk)
 {
-	bytesTotal += chunk.toUtf8().size();
-	graph->pushBytes(chunk.toUtf8().size());
-
-	lineBuf += chunk;
-	int nl;
-	QString html;
-	while ((nl = lineBuf.indexOf('\n')) >= 0) {
-		QString line = lineBuf.left(nl);
-		lineBuf.remove(0, nl + 1);
-		if (line.trimmed().isEmpty()) { html += "<br>"; continue; }
-		html += colorizeLine(line) + "<br>";
+	int sz=chunk.toUtf8().size(); bytesTotal+=sz; graph->pushBytes(sz);
+	lineBuf+=chunk; int nl; QString html;
+	while ((nl=lineBuf.indexOf('\n'))>=0){
+		QString line=lineBuf.left(nl); lineBuf.remove(0,nl+1);
+		if (line.trimmed().isEmpty()) continue;
+		html+=colorizeLine(line)+"<br>";
 	}
-	if (!html.isEmpty()) {
+	if (!html.isEmpty()){
 		log->moveCursor(QTextCursor::End);
 		log->insertHtml(html);
 		log->verticalScrollBar()->setValue(log->verticalScrollBar()->maximum());
 	}
-	updateStats();
+	vTargets->setText(QString("%1 [%2%]").arg(foundTargets).arg(progressPct,0,'f',1));
+	vOffline->setText(QString::number(offlineCount));
+	vSaved->setText(QString("%1/%2").arg(bruteHits).arg(foundTargets));
+	activityVal->setText(bytesTotal>1024?QString("%1kb").arg(bytesTotal/1024)
+					   :QString("%1b").arg(bytesTotal));
 }
 
-void MainWindow::updateStats()
-{
-	stTargets->setText(QString::number(foundTargets));
-	stFound->setText(QString("%1 / %2").arg(foundTargets).arg(bruteHits));
-	activityLabel->setText(QString("Activity: %1")
-		.arg(bytesTotal > 1024 ? QString("%1kb").arg(bytesTotal/1024)
-					: QString("%1b").arg(bytesTotal)));
-	if (progressPct > 0) progress->setValue((int)progressPct);
-}
-
-void MainWindow::onReadyStdout(){ if (proc) ingest(QString::fromLocal8Bit(proc->readAllStandardOutput())); }
-void MainWindow::onReadyStderr(){ if (proc) ingest(QString::fromLocal8Bit(proc->readAllStandardError())); }
+void MainWindow::onReadyStdout(){ if(proc) ingest(QString::fromLocal8Bit(proc->readAllStandardOutput())); }
+void MainWindow::onReadyStderr(){ if(proc) ingest(QString::fromLocal8Bit(proc->readAllStandardError())); }
 
 void MainWindow::onSecTick()
 {
-	qint64 ms = clock.elapsed(); int s = ms/1000;
-	stElapsed->setText(QString("%1:%2").arg(s/60,2,10,QChar('0')).arg(s%60,2,10,QChar('0')));
-	double rate = s > 0 ? (double)foundTargets / s : 0;
-	stIps->setText(QString("%1/s").arg(rate,0,'f',1));
-	if (proc) stThreads->setText(QString::number(threadsSpin->value()));
+	int s=clock.elapsed()/1000;
+	vIps->setText(QString("%1/s").arg(s>0?(double)foundTargets/s:0,0,'f',1));
+	vThreads->setText(threadsLine->text()+"/"+threadsLine->text());
 }
 
 void MainWindow::onFinished(int code)
 {
-	if (!lineBuf.isEmpty()) { appendHtml(colorizeLine(lineBuf)); lineBuf.clear(); }
-	appendHtml(QString("<span style='color:%1'>[*] finished (exit %2) — "
-		"%3 targets, %4 brute hits</span>")
-		.arg(C_GRAY).arg(code).arg(foundTargets).arg(bruteHits));
+	if (!lineBuf.isEmpty()){ log->append(colorizeLine(lineBuf)); lineBuf.clear(); }
+	log->append(QString("<span style='color:" DIM "'>[*] finished (exit %1) — "
+		"%2 alive, %3 brute hits</span>").arg(code).arg(foundTargets).arg(bruteHits));
 	setRunning(false);
-	progress->setValue(100);
-	statusLabel->setText("done");
-	if (!reportPath.isEmpty() && QFile::exists(reportPath)) {
-		QFile f(reportPath);
-		if (f.open(QIODevice::ReadOnly)) {
-			report->setHtml(QString::fromUtf8(f.readAll())); f.close();
-		}
-	}
+	statusVal->setText("Done"); statusVal->setStyleSheet("color:" TXT ";background:transparent;");
 }
+
+void MainWindow::onClearLog(){ log->clear(); }

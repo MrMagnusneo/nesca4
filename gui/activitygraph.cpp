@@ -42,7 +42,8 @@ void ActivityGraph::tick()
 	double base = active ? 0.06 : 0.02;
 	double noise = ((double)(std::rand() % 100) / 100.0 - 0.5) * base;
 	double s = level + noise + (active ? 0.04 * std::sin(phase) : 0.0);
-	if (s < 0) s = 0; if (s > 1) s = 1;
+	if (s < 0) s = 0;
+	if (s > 1) s = 1;
 	samples.append(s);
 	while (samples.size() > MAXS)
 		samples.removeFirst();
