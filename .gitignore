@@ -8,3 +8,10 @@
 /config.h.in~
 /configure~
 /autom4te.cache/
+
+# Qt GUI build artifacts
+/gui/nesca4-gui
+/gui/Makefile
+/gui/*.o
+/gui/moc_*
+/gui/.qmake.stash
