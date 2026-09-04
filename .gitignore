@@ -1,20 +1,21 @@
-# build artifacts
-*.o
-/nesca4
-/Makefile
-/config.h
-/config.status
-/config.log
-/config.h.in~
-/configure~
-/autom4te.cache/
 
-# Qt GUI build artifacts
-/gui/nesca4-gui
+/autom4te.cache/
+# build artifacts
+/config.h
+/config.h.in~
+/config.log
+/config.status
+/configure~
 /gui/Makefile
-/gui/*.o
 /gui/moc_*
+/gui/nesca4
+/gui/nesca4-gui
+/gui/*.o
 /gui/.qmake.stash
 /gui/qrc_*
-/gui/ui_*.h
 /gui/qrc_*.cpp
+/gui/ui_*.h
+/Makefile
+/nesca4
+*.o
+# Qt GUI build artifacts
