@@ -122,7 +122,7 @@ static QString ncsServices(const QString &ports)
 	QStringList out;
 	const auto toks=ports.split(QRegExp("[ ,]"), QString::SkipEmptyParts);
 	for (QString t : toks){ t=t.section(':',-1); bool ok=false; int p=t.toInt(&ok); if(!ok) continue;
-		const char *s=(p==21)?"ftp":(p==22)?"ssh":(p==25)?"smtp":(p==554)?"rtsp":
+		const char *s=(p==21)?"ftp":(p==22)?"ssh":(p==25)?"smtp":(p==23)?"telnet":(p==554)?"rtsp":
 			(p==8000)?"hik":(p==37777)?"rvi":"http";
 		out<<QString("%1:%2").arg(s).arg(p); }
 	return out.join(",");
