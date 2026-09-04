@@ -41,6 +41,7 @@ static const NESCASVC SVC[] = {
 	{ "smtp",      S_SMTP,  25   },
 	{ "hikvision", S_HIK,   8000 },  /* long alias */
 	{ "hik",       S_HIK,   8000 },
+	{ "telnet",    S_TELNET,23   },
 };
 static const int SVCN = (int)(sizeof(SVC)/sizeof(SVC[0]));
 

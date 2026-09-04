@@ -166,6 +166,10 @@ void NESCABRUTE::probe(int fd, u8 service, const std::string &ip,
 			if (path=="ivms")
 				*auth=hik_ivms_auth(ip, srvport, login, pass);
 			return;
+		case TELNET_BRUTEFORCE:
+			*auth=telnet_qprc_auth(fd, ip, srvport, login, pass,
+				restimeout);
+			return;
 	}
 }
 
