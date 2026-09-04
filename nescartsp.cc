@@ -51,6 +51,16 @@ std::string rtsp_digest_response(const std::string &user,
 	return md5hex(ha1 + ":" + nonce + ":" + ha2);
 }
 
+std::string rtsp_digest_header(const std::string &user, const std::string &realm,
+	const std::string &pass, const std::string &method, const std::string &uri,
+	const std::string &nonce)
+{
+	std::string resp = rtsp_digest_response(user, realm, pass, method, uri, nonce);
+	return "Authorization: Digest username=\"" + user
+		+ "\", realm=\"" + realm + "\", nonce=\"" + nonce
+		+ "\", uri=\"" + uri + "\", response=\"" + resp + "\"\r\n";
+}
+
 /* extract value of key="..." searching at/after the first occurrence of key */
 static bool extract_quoted(const std::string &src, const std::string &key,
 	std::string &out)
@@ -136,11 +146,8 @@ bool rtsp_qprc_auth(int fd, const std::string &ip, u16 port,
 		authhdr = "Authorization: Basic "
 			+ std::string(enc, elen) + "\r\n";
 	} else {
-		std::string resp = rtsp_digest_response(login, realm, pass,
+		authhdr = rtsp_digest_header(login, realm, pass,
 			"DESCRIBE", uri, nonce);
-		authhdr = "Authorization: Digest username=\"" + login
-			+ "\", realm=\"" + realm + "\", nonce=\"" + nonce
-			+ "\", uri=\"" + uri + "\", response=\"" + resp + "\"\r\n";
 	}
 	std::string req2 = "DESCRIBE " + uri + " RTSP/1.0\r\nCSeq: 2\r\n"
 		+ authhdr + "\r\n";

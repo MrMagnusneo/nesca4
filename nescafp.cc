@@ -138,11 +138,7 @@ bool http_digestauth(int fd, const std::string &ip, u16 port,
 		return false;
 
 	/* 2) answer the Digest challenge (RFC2617, reusing nescartsp) */
-	std::string resp=rtsp_digest_response(login, realm, pass,
-		"GET", path, nonce);
-	std::string auth="Authorization: Digest username=\""+login
-		+"\", realm=\""+realm+"\", nonce=\""+nonce+"\", uri=\""+path
-		+"\", response=\""+resp+"\"\r\n";
+	std::string auth=rtsp_digest_header(login, realm, pass, "GET", path, nonce);
 	std::string req2="GET "+path+" HTTP/1.1\r\nHost: "+host+"\r\n"
 		+auth+"Connection: close\r\n\r\n";
 	memset(buf, 0, sizeof buf);
