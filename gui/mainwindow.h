@@ -1,18 +1,21 @@
-/* nesca4-gui — main window. */
+/* nesca4-gui — nesca-style main window. */
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QElapsedTimer>
 
 class QLineEdit;
-class QPlainTextEdit;
+class QTextEdit;
 class QTextBrowser;
 class QPushButton;
 class QComboBox;
 class QSpinBox;
-class QCheckBox;
 class QLabel;
+class QProgressBar;
 class QProcess;
+class QTimer;
+class ActivityGraph;
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT
@@ -21,39 +24,47 @@ public:
 	~MainWindow() override;
 
 private slots:
-	void onStart();
-	void onStop();
+	void onStartStop();
 	void onBrowseBin();
-	void onReadyReadStdout();
-	void onReadyReadStderr();
-	void onFinished(int exitCode);
+	void onReadyStdout();
+	void onReadyStderr();
+	void onFinished(int code);
+	void onSecTick();
 
 private:
 	QStringList buildArgs(QString &reportPath) const;
-	void setRunning(bool running);
-	void appendLog(const QString &text);
+	void   setRunning(bool running);
+	void   ingest(const QString &chunk);     /* colorize + parse */
+	void   appendHtml(const QString &html);
+	QString colorizeLine(const QString &line);
+	void   resetStats();
+	void   updateStats();
 
 	/* inputs */
-	QLineEdit      *binEdit;
-	QLineEdit      *targetEdit;
-	QLineEdit      *portsEdit;
-	QLineEdit      *servicesEdit;
-	QComboBox      *scanMethod;
-	QSpinBox       *threadsSpin;
-	QCheckBox      *noPingChk;
-	QCheckBox      *noScanChk;
-	QCheckBox      *verboseChk;
-	QCheckBox      *onlyOpenChk;
+	QLineEdit    *binEdit, *targetEdit, *portsEdit, *servicesEdit;
+	QComboBox    *scanMethod;
+	QSpinBox     *threadsSpin, *timeoutSpin;
+	QPushButton  *startBtn;
 
-	/* controls / output */
-	QPushButton    *startBtn;
-	QPushButton    *stopBtn;
-	QPlainTextEdit *console;
-	QTextBrowser   *report;
-	QLabel         *statusLabel;
+	/* stats */
+	QLabel       *stCurrent, *stThreads, *stTargets, *stIps,
+		     *stFound, *stElapsed;
+	ActivityGraph*graph;
+	QProgressBar *progress;
+	QLabel       *statusLabel, *activityLabel;
 
-	QProcess       *proc;
-	QString         reportPath;
+	/* output */
+	QTextEdit    *log;
+	QTextBrowser *report;
+
+	/* runtime */
+	QProcess     *proc;
+	QString       reportPath, lineBuf;
+	QElapsedTimer clock;
+	QTimer       *sec;
+	long long     bytesTotal;
+	int           foundTargets, bruteHits;
+	double        progressPct;
 };
 
 #endif

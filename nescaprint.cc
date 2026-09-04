@@ -327,6 +327,13 @@ void NESCAPRINT::nescatarget(NESCATARGET *target, bool onlyok, bool cut)
 					std::cout<<"  "<<
 						((tmp.service==S_FTP)?"ftp":
 						 (tmp.service==S_HTTP)?"http":
+						 (tmp.service==S_RTSP)?"rtsp":
+						 (tmp.service==S_SSH)?"ssh":
+						 (tmp.service==S_RVI)?"rvi":
+						 (tmp.service==S_IPC)?"ipc":
+						 (tmp.service==S_WF)?"webform":
+						 (tmp.service==S_SMTP)?"smtp":
+						 (tmp.service==S_HIK)?"hikvision":
 						 "???")
 						<< "(" << s.type << ")"
 						<< "  ";
